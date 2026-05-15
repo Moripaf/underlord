@@ -29,8 +29,8 @@ find_package(elfloader-tool REQUIRED)
 find_package(musllibc REQUIRED)
 find_package(util_libs REQUIRED)
 find_package(seL4_libs REQUIRED)
+find_package(projects_libs REQUIRED)
 find_package(sel4_projects_libs REQUIRED)
-#find_package(projects_libs REQUIRED)
 #find_package(seL4_projects_libs REQUIRED)
 
 # Import build graph
@@ -43,6 +43,7 @@ sel4_import_libsel4()
 
 util_libs_import_libraries()
 seL4_libs_import_libraries()
+message(STATUS "projects_libs_FOUND=${projects_libs_FOUND}")
 if(projects_libs_FOUND)
     projects_libs_import_libraries()
 endif()

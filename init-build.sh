@@ -58,6 +58,7 @@ if [ -e "$SCRIPT_PATH/CMakeLists.txt" ]; then
     -DCMAKE_TOOLCHAIN_FILE="$SEL4_ROOT/kernel/gcc.cmake" \
     -DSEL4_CACHE_DIR="$CACHE_DIR" \
     -DSEL4_ROOT="$SEL4_ROOT" \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -C "$SCRIPT_PATH/settings.cmake" \
     $CMAKE_ARGS
 else
