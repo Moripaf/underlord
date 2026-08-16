@@ -4,7 +4,8 @@ set -eu
 SCRIPT_PATH=$(cd "${0%/*}" && pwd)
 SCRIPT_NAME=${0##*/}
 
-DEFAULT_SEL4_ROOT="$HOME/Code/sel4/tutorials/"
+DEFAULT_SEL4_ROOT="/var/Code/sel4/tutorials/"
+#"$HOME/Code/sel4/tutorials/"
 DEFAULT_BUILD_DIR="$SCRIPT_PATH/build"
 
 SEL4_ROOT="${SEL4_ROOT:-$DEFAULT_SEL4_ROOT}"

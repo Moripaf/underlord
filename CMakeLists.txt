@@ -33,6 +33,11 @@ find_package(projects_libs REQUIRED)
 find_package(sel4_projects_libs REQUIRED)
 #find_package(seL4_projects_libs REQUIRED)
 
+# Enable kernel debug printing so root-task printf can use seL4_DebugPutChar.
+include(application_settings)
+ApplyCommonReleaseVerificationSettings(${RELEASE} ${VERIFICATION})
+set(LibSel4PlatSupportUseDebugPutChar ON CACHE BOOL "" FORCE)
+
 # Import build graph
 sel4_import_kernel()
 elfloader_import_project()

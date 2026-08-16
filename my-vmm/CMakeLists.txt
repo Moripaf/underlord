@@ -25,6 +25,7 @@ target_link_libraries(
         sel4platsupport
         sel4debug
         sel4vmmplatsupport
+        sel4allocman
         # optional user libs if needed:
         # sel4debug
         # sel4sync
