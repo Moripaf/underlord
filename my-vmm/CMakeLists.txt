@@ -11,6 +11,7 @@ enable_language(ASM)
 
 add_executable(${PROJECT_NAME}
     ../${PROJECT_NAME}/src/main.c
+    ../${PROJECT_NAME}/src/init.c
 )
 
 # Keep this list intentional for what your app actually uses.

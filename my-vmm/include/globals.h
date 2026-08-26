@@ -1,13 +1,13 @@
 #include <allocman/allocman.h>
-seL4_BootInfo *CURRENT_BOOT_INFO;
+extern seL4_BootInfo *CURRENT_BOOT_INFO;
 
 /* simple_t defined in simple.h */
-simple_t ROOT_SIMPLE;
+extern simple_t ROOT_SIMPLE;
 
 /* vka_t defined in vka.h */
-vka_t VKA;
+extern vka_t VKA;
 
 /* allocman_t defined in allocman.h */
-allocman_t *ROOT_ALLOCMAN;
+extern allocman_t *ROOT_ALLOCMAN;
 
-seL4_CPtr ROOT_VSPACE;
+extern seL4_CPtr ROOT_VSPACE;

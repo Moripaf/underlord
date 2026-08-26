@@ -8,6 +8,11 @@ endif()
 
 project(Underlord)
 
+# elfloader strips AArch64 kernel and root-task ELF files; use the matching
+# cross-binutils tool instead of the host strip binary.
+find_program(SEL4_CROSS_STRIP NAMES aarch64-linux-gnu-strip REQUIRED)
+set(CMAKE_STRIP "${SEL4_CROSS_STRIP}" CACHE FILEPATH "Target strip tool" FORCE)
+
 # Make Find*.cmake modules resolvable from a project outside the root checkout.
 list(
     APPEND

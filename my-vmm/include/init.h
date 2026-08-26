@@ -22,3 +22,8 @@ UNUSED static char allocator_mem_pool[ALLOCATOR_STATIC_POOL_SIZE];
  * otherwise -1 on error
  */
 int load_guest_vmm(uintptr_t load_address, guest_kernel_image_t *result);
+/***
+ * @function initialize_allocators() initializes base kernel memory and object
+ * allocators to default values
+ */
+int initialize_allocators();
