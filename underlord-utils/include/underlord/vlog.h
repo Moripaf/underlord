@@ -8,7 +8,14 @@ typedef enum {
     UNDERLORD_LOG_ERROR,
 } underlord_log_level_t;
 
-/* Public VMM logging interface. The helper supplies the vmm[instance] name. */
-void underlord_vlog(unsigned int instance_id, underlord_log_level_t level,
-                    const char *format, ...)
-    __attribute__((format(printf, 3, 4)));
+/* Public VMM logging interface. Each helper supplies the vmm[instance] name. */
+void underlord_vlog_trace(unsigned int instance_id, const char *format, ...)
+    __attribute__((format(printf, 2, 3)));
+void underlord_vlog_debug(unsigned int instance_id, const char *format, ...)
+    __attribute__((format(printf, 2, 3)));
+void underlord_vlog_info(unsigned int instance_id, const char *format, ...)
+    __attribute__((format(printf, 2, 3)));
+void underlord_vlog_warn(unsigned int instance_id, const char *format, ...)
+    __attribute__((format(printf, 2, 3)));
+void underlord_vlog_error(unsigned int instance_id, const char *format, ...)
+    __attribute__((format(printf, 2, 3)));

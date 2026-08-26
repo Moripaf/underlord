@@ -34,22 +34,47 @@ static void log_message(const char *module, underlord_log_level_t level,
     printf("%s\n", message);
 }
 
-void underlord_hlog(underlord_log_level_t level, const char *format, ...)
+static void hlog_at_level(underlord_log_level_t level, const char *format,
+                          va_list args)
 {
-    va_list args;
-    va_start(args, format);
     log_message("hypervisor", level, format, args);
-    va_end(args);
 }
 
-void underlord_vlog(unsigned int instance_id, underlord_log_level_t level,
-                    const char *format, ...)
+static void vlog_at_level(unsigned int instance_id, underlord_log_level_t level,
+                          const char *format, va_list args)
 {
     char module[24];
-    va_list args;
 
     snprintf(module, sizeof(module), "vmm[%u]", instance_id);
-    va_start(args, format);
     log_message(module, level, format, args);
-    va_end(args);
 }
+
+#define DEFINE_HLOG_HELPER(name, level)                                        \
+    void underlord_hlog_##name(const char *format, ...)                         \
+    {                                                                            \
+        va_list args;                                                            \
+        va_start(args, format);                                                  \
+        hlog_at_level(level, format, args);                                      \
+        va_end(args);                                                            \
+    }
+
+#define DEFINE_VLOG_HELPER(name, level)                                        \
+    void underlord_vlog_##name(unsigned int instance_id, const char *format, ...) \
+    {                                                                            \
+        va_list args;                                                            \
+        va_start(args, format);                                                  \
+        vlog_at_level(instance_id, level, format, args);                         \
+        va_end(args);                                                            \
+    }
+
+DEFINE_HLOG_HELPER(trace, UNDERLORD_LOG_TRACE)
+DEFINE_HLOG_HELPER(debug, UNDERLORD_LOG_DEBUG)
+DEFINE_HLOG_HELPER(info, UNDERLORD_LOG_INFO)
+DEFINE_HLOG_HELPER(warn, UNDERLORD_LOG_WARN)
+DEFINE_HLOG_HELPER(error, UNDERLORD_LOG_ERROR)
+
+DEFINE_VLOG_HELPER(trace, UNDERLORD_LOG_TRACE)
+DEFINE_VLOG_HELPER(debug, UNDERLORD_LOG_DEBUG)
+DEFINE_VLOG_HELPER(info, UNDERLORD_LOG_INFO)
+DEFINE_VLOG_HELPER(warn, UNDERLORD_LOG_WARN)
+DEFINE_VLOG_HELPER(error, UNDERLORD_LOG_ERROR)

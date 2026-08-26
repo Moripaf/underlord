@@ -16,7 +16,7 @@ int hypervisor_bootstrap(hypervisor_context_t *context)
 {
     seL4_BootInfo *bootinfo = platsupport_get_bootinfo();
     if (bootinfo == NULL) {
-        underlord_hlog(UNDERLORD_LOG_ERROR, "bootinfo unavailable");
+        underlord_hlog_error("bootinfo unavailable");
         return -1;
     }
 
@@ -24,7 +24,7 @@ int hypervisor_bootstrap(hypervisor_context_t *context)
     context->allocman = bootstrap_use_current_simple(
         &context->simple, sizeof(allocator_mem_pool), allocator_mem_pool);
     if (context->allocman == NULL) {
-        underlord_hlog(UNDERLORD_LOG_ERROR, "allocator bootstrap failed");
+        underlord_hlog_error("allocator bootstrap failed");
         return -1;
     }
 
@@ -32,7 +32,7 @@ int hypervisor_bootstrap(hypervisor_context_t *context)
     if (sel4utils_bootstrap_vspace_with_bootinfo_leaky(
             &context->vspace, &context->vspace_data,
             simple_get_pd(&context->simple), &context->vka, bootinfo) != 0) {
-        underlord_hlog(UNDERLORD_LOG_ERROR, "root vspace bootstrap failed");
+        underlord_hlog_error("root vspace bootstrap failed");
         return -1;
     }
 
@@ -41,13 +41,12 @@ int hypervisor_bootstrap(hypervisor_context_t *context)
         &context->vspace, ALLOCATOR_VIRTUAL_POOL_SIZE, seL4_AllRights, 1,
         &virtual_pool);
     if (reservation.res == NULL) {
-        underlord_hlog(UNDERLORD_LOG_ERROR,
-                       "allocator virtual pool reservation failed");
+        underlord_hlog_error("allocator virtual pool reservation failed");
         return -1;
     }
     bootstrap_configure_virtual_pool(context->allocman, virtual_pool,
                                      ALLOCATOR_VIRTUAL_POOL_SIZE,
                                      simple_get_pd(&context->simple));
-    underlord_hlog(UNDERLORD_LOG_INFO, "root allocator ready");
+    underlord_hlog_info("root allocator ready");
     return 0;
 }
