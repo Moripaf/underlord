@@ -1,15 +1,15 @@
 # Underlord
 
-Underlord is an seL4-based hypervisor project for running Unikraft unikernels
+Underlord is a seL4-based hypervisor project for running Unikraft unikernels
 as isolated virtual machines. Its long-term goal is to manage VMM and VM
 lifecycle, capability delegation, resource allocation, and monitoring while
 keeping the trusted root-task boundary small and explicit.
 
-The current implementation runs on AArch64 QEMU. A root-task hypervisor embeds,
-creates, and supervises one restricted VMM child process. The child performs a
-versioned startup handshake and then blocks awaiting control. Guest VM boot,
-vCPU setup, device virtualization, resource delegation, and lifecycle
-management beyond terminal fault reporting are still future work.
+## Current state
+
+The current implementation runs on AArch64 QEMU. With A root-task hypervisor
+and a VMM that is spawned as child of the hypervisor and is tasked
+with running the actual unikraft vms.
 
 ## Documentation
 
@@ -35,3 +35,8 @@ ninja
 ```
 
 `build/simulate` is the normal runnable development artifact.
+
+## Tests
+
+refer to the [Testing strategy](docs/testing_strategy.md) to see how to build,
+run and add tests
