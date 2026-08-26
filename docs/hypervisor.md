@@ -1,6 +1,6 @@
 # Hypervisor Module
 
-`src/hypervisor/` is the sole seL4 rootserver. It retains initial authority,
+`hypervisor/` is the sole seL4 rootserver. It retains initial authority,
 creates one restricted VMM process, and supervises that process.
 
 ## Owned state

@@ -1,6 +1,6 @@
 # VMM Module
 
-`src/my-vmm/` is a non-root child executable. It is the future home of guest
+`my-vmm/` is a non-root child executable. It is the future home of guest
 VM logic; today it proves restricted process startup and communication with the
 hypervisor.
 

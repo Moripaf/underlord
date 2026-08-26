@@ -15,12 +15,12 @@ when that dependency is available.
 
 Do not make host tests the acceptance criterion for kernel-facing code. The
 acceptance suite must build the actual `qemu-arm-virt`/AArch64 configuration and
-run it with `src/build/simulate`.
+run it with `build/simulate`.
 
 ## Test layout
 
 ```
-src/
+underlord/
 ├── underlord-utils/
 │   └── tests/                   # Host tests for pure format/state helpers
 ├── hypervisor/
@@ -95,7 +95,7 @@ messages and the terminal result marker.
 
 ## QEMU execution and automation
 
-The normal runnable artifact remains `src/build/simulate`. A test wrapper
+The normal runnable artifact remains `build/simulate`. A test wrapper
 should run it with a timeout, capture the serial log, require exactly one
 terminal result marker, and return a non-zero host exit status on failure or
 timeout. This turns the cross-compiled emulator run into a CI-friendly command.
@@ -103,7 +103,7 @@ timeout. This turns the cross-compiled emulator run into a CI-friendly command.
 Suggested developer commands:
 
 ```sh
-cd $PROJECTROOT/src
+cd $PROJECTROOT
 ./init-build.sh --build-dir build-tests -DUNDERLORD_BUILD_TESTS=ON
 cd build-tests
 ninja

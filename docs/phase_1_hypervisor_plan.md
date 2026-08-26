@@ -142,7 +142,7 @@ until the real control protocol exists.
 
 ### 1. Restructure the CMake build
 
-- Add `src/hypervisor/` with its own `CMakeLists.txt`, `src/`, and `include/`.
+- Add `hypervisor/` with its own `CMakeLists.txt`, `src/`, and `include/`.
 - Change the top-level CMake project to add both `hypervisor` and `my-vmm`.
 - Remove `DeclareRootserver(my-vmm)`; declare `hypervisor` as the sole
   rootserver.

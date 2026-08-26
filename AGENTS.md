@@ -1,5 +1,7 @@
 # Underlord Agent Guidance
 
+## Documents and their maintenance
+
 Before planning or changing this project, read the documentation relevant to
 the work:
 
@@ -12,7 +14,7 @@ the work:
   behavior, and control protocol.
 - [`docs/testing_strategy.md`](docs/testing_strategy.md) for test layers,
   targets, scenarios, and QEMU automation.
-- [`docs/docs/unikraft_boot_requirements.md`](docs/docs/unikraft_boot_requirements.md)
+- [`docs/thinking/unikraft_boot_requirements.md`](docs/thinking/unikraft_boot_requirements.md)
   for researched Unikraft guest boot requirements.
 
 Do not duplicate concepts between documents. Update the document that owns the
@@ -24,9 +26,6 @@ in `docs/` in the same change. Update `docs/project_architecture.md` whenever a
 change affects system topology, the build, shared utilities, cross-module
 boundaries, or the test workflow. Update `docs/hypervisor.md` or `docs/vmm.md`
 when that module's behavior, capabilities, contract, or implementation changes.
-
-Use `src/build/simulate` as the final runnable artifact for the normal
-build-and-run feedback loop.
 
 ## Coding Rules
 
@@ -62,3 +61,8 @@ Define success before implementation and state how it will be verified. For a
 multi-step change, write each step with its verification check. Do not add
 test-only code or hooks to the production image when a separate test target can
 exercise the behavior.
+
+## Execution
+
+Use `build/simulate` as the final runnable artifact for the normal
+build-and-run feedback loop.

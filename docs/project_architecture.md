@@ -30,16 +30,16 @@ The [hypervisor](hypervisor.md) owns root authority and VMM lifecycle. The
 
 ## Repository and modules
 
-The workspace contains separate `src/` and `docs/` Git repositories.
+The source tree and documentation live in one project repository.
 
 | Module | Purpose |
 |---|---|
-| `src/hypervisor/` | seL4 rootserver and VMM supervisor |
-| `src/my-vmm/` | Restricted child process that will host VM logic |
-| `src/underlord-utils/` | Shared bounded logging and component-specific log APIs |
-| `src/tests/` and module `tests/` | Host and seL4/QEMU tests |
+| `hypervisor/` | seL4 rootserver and VMM supervisor |
+| `my-vmm/` | Restricted child process that will host VM logic |
+| `underlord-utils/` | Shared bounded logging and component-specific log APIs |
+| `tests/` and module-local `tests/` | Host and seL4/QEMU tests |
 
-Generated files live in `src/build/`; the external seL4 checkout is selected
+Generated files live in `build/`; the external seL4 checkout is selected
 with `SEL4_ROOT`.
 
 ## Shared utilities
@@ -57,14 +57,14 @@ debug-oriented build. `my-vmm` is built first and packaged into the
 `hypervisor` rootserver through `MakeCPIO`.
 
 ```sh
-cd $PROJECTROOT/src
+cd $PROJECTROOT
 ./init-build.sh --sel4-root /path/to/sel4-checkout
 cd build
 ninja
 ./simulate
 ```
 
-`src/build/simulate` is the final runnable development artifact. Testing has a
+`build/simulate` is the final runnable development artifact. Testing has a
 separate build mode described in [Testing Strategy](testing_strategy.md).
 
 ## Current boundary
