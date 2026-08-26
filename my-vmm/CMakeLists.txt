@@ -11,6 +11,7 @@ enable_language(ASM)
 
 add_executable(${PROJECT_NAME}
     src/main.c
+    src/vmm_protocol_core.c
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)

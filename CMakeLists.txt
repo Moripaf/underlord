@@ -9,6 +9,7 @@ endif()
 project(Underlord)
 
 option(VMM_FAULT_TEST "Make the Phase 1 VMM deliberately fault after startup" OFF)
+option(UNDERLORD_BUILD_TESTS "Build Underlord host and seL4 test targets" OFF)
 
 # elfloader strips AArch64 kernel and root-task ELF files; use the matching
 # cross-binutils tool instead of the host strip binary.
@@ -69,4 +70,9 @@ add_subdirectory(underlord-utils)
 
 # Build the child ELF before the rootserver packages it into its CPIO archive.
 add_subdirectory(my-vmm)
-add_subdirectory(hypervisor)
+if(UNDERLORD_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+else()
+    add_subdirectory(hypervisor)
+endif()

@@ -2,36 +2,17 @@
 #include <stdio.h>
 
 #include <underlord/hlog.h>
-
-static const char *log_level_name(underlord_log_level_t level)
-{
-    static const char *const names[] = {
-        [UNDERLORD_LOG_TRACE] = "TRACE",
-        [UNDERLORD_LOG_DEBUG] = "DEBUG",
-        [UNDERLORD_LOG_INFO] = "INFO",
-        [UNDERLORD_LOG_WARN] = "WARN",
-        [UNDERLORD_LOG_ERROR] = "ERROR",
-    };
-
-    return level <= UNDERLORD_LOG_ERROR ? names[level] : "UNKNOWN";
-}
+#include <underlord/log_format.h>
 
 static void log_message(const char *module, underlord_log_level_t level,
                         const char *format, va_list args)
 {
     char message[256];
-    int prefix_length = snprintf(message, sizeof(message), "[%s] %s: ",
-                                 log_level_name(level), module);
-    if (prefix_length < 0) {
-        return;
-    }
 
-    size_t offset = (size_t)prefix_length;
-    if (offset >= sizeof(message)) {
-        offset = sizeof(message) - 1;
+    if (underlord_format_log_v(message, sizeof(message), module, level, format,
+                               args) == 0) {
+        printf("%s\n", message);
     }
-    vsnprintf(message + offset, sizeof(message) - offset, format, args);
-    printf("%s\n", message);
 }
 
 static void hlog_at_level(underlord_log_level_t level, const char *format,

@@ -6,12 +6,16 @@ add_executable(${PROJECT_NAME}
     archive.o
     src/main.c
     src/root_bootstrap.c
+    src/vmm_image.c
+    src/vmm_lifecycle.c
     src/vmm_manager.c
+    ${CMAKE_SOURCE_DIR}/my-vmm/src/vmm_protocol_core.c
 )
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         include
+        ${CMAKE_SOURCE_DIR}/my-vmm/include
         ${CMAKE_SOURCE_DIR}/underlord-utils/hypervisor-include
 )
 
