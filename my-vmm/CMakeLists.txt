@@ -10,9 +10,16 @@ enable_language(ASM)
 
 
 add_executable(${PROJECT_NAME}
-    ../${PROJECT_NAME}/src/main.c
-    ../${PROJECT_NAME}/src/init.c
+    src/main.c
 )
+
+target_include_directories(${PROJECT_NAME} PRIVATE include)
+
+if(VMM_FAULT_TEST)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VMM_FAULT_TEST=1)
+else()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VMM_FAULT_TEST=0)
+endif()
 
 # Keep this list intentional for what your app actually uses.
 target_link_libraries(
@@ -25,8 +32,7 @@ target_link_libraries(
         sel4utils
         sel4platsupport
         sel4debug
-        sel4vmmplatsupport
-        sel4allocman
+        underlord-utils
         # optional user libs if needed:
         # sel4debug
         # sel4sync
@@ -35,11 +41,3 @@ target_link_libraries(
 # If you enabled projects_libs, link in chosen targets here explicitly.
 # e.g.
 # target_link_libraries(${PROJECT_NAME} PRIVATE sel4vmmplatsupport sel4keyboard sel4vchan)
-
-# Root image generation (kernel + root task image under build/images)
-include(${SEL4_ROOT}/tools/seL4/cmake-tool/helpers/rootserver.cmake)
-DeclareRootserver(${PROJECT_NAME})
-
-# Optional: generate ./build/simulate and ./build/launch_gdb scripts
-include(${SEL4_ROOT}/tools/seL4/cmake-tool/helpers/simulation.cmake)
-GenerateSimulateScript()

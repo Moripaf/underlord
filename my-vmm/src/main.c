@@ -1,17 +1,19 @@
-#include "../include/init.h"
-#include <stdio.h>
-int main(int argc, char *argv[]) {
-  int err;
-  printf("Hello, World!\n");
-  printf("constucting allocators\n");
-  err = initialize_allocators();
-  printf("finished allocator init with result: ");
-  if (err) {
-    printf("we done fucked up with initialize_allocators\n");
-  }
-  printf("allocators ready\n");
-  /* Root tasks must not return; there is no process to exit to. */
-  printf("Im the root task kids, you dont see systemd return anything :)\n");
-  while (1) {
-  }
+#include <sel4/sel4.h>
+
+#include <underlord/vlog.h>
+
+#include "vmm_protocol.h"
+
+int main(void)
+{
+    underlord_vlog(0, UNDERLORD_LOG_INFO, "started");
+
+#if VMM_FAULT_TEST
+    underlord_vlog(0, UNDERLORD_LOG_WARN, "fault test requested");
+    *(volatile seL4_Word *)0 = 0;
+#endif
+
+    /* The hypervisor supplies this endpoint in a fixed manifest slot. */
+    seL4_Wait(VMM_CONTROL_ENDPOINT_SLOT, NULL);
+    return 0;
 }

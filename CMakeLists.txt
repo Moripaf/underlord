@@ -8,6 +8,8 @@ endif()
 
 project(Underlord)
 
+option(VMM_FAULT_TEST "Make the Phase 1 VMM deliberately fault after startup" OFF)
+
 # elfloader strips AArch64 kernel and root-task ELF files; use the matching
 # cross-binutils tool instead of the host strip binary.
 find_program(SEL4_CROSS_STRIP NAMES aarch64-linux-gnu-strip REQUIRED)
@@ -62,4 +64,9 @@ if(sel4_projects_libs_FOUND)
     sel4_projects_libs_import_libraries()
 endif()
 
+# Shared utilities are linked by both independently running components.
+add_subdirectory(underlord-utils)
+
+# Build the child ELF before the rootserver packages it into its CPIO archive.
 add_subdirectory(my-vmm)
+add_subdirectory(hypervisor)
