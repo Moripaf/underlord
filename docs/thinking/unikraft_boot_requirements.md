@@ -1,4 +1,10 @@
 <!-- markdownlint-disable-file MD013 -->
+# Unikraft x86 boot investigation
+
+This document records the earlier x86 Multiboot investigation. It is not the
+AArch64 boot contract used by Underlord. For Phase 2's AArch64 QEMU-virt
+guest, use [the AArch64 KVM boot contract](unikraft_aarch64_kvm_boot_contract.md).
+
 # What do i need to boot unikraft
 
 I've chosen to replicate multiboot behaviour and kvm functionality that unikraft expects so i can run it with minimum changes to the unikraft code.
