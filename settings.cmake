@@ -39,7 +39,9 @@ set(KernelPlatform "qemu-arm-virt" CACHE PATH "Default kernel platform")
 set(CROSS_COMPILER_PREFIX "aarch64-linux-gnu-" CACHE STRING "Cross compiler")
 # Visible to GenerateSimulateScript() (kernel plat config sets these only in a subdirectory scope).
 set(QEMU_ARCH "aarch64" CACHE STRING "QEMU binary arch suffix for qemu-arm-virt")
-set(QEMU_MEMORY "1024" CACHE STRING "QEMU RAM size in MiB for simulate")
+# The fixed Phase-2 VMM needs one 2^28 non-device boot untyped.  With the
+# rootserver's physical placement, qemu-arm-virt exposes at most 2^27 at 1 GiB.
+set(QEMU_MEMORY "2048" CACHE STRING "QEMU RAM size in MiB for simulate")
 set(QEMU_GIC_VERSION "2" CACHE STRING "QEMU GIC version for simulate")
 # Route early printf through seL4_DebugPutChar (requires KernelDebugBuild/KernelPrinting).
 set(LibSel4PlatSupportUseDebugPutChar ON CACHE BOOL "" FORCE)

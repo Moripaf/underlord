@@ -2,6 +2,7 @@ add_executable(underlord-sel4-tests
     runner.c
     ${CMAKE_SOURCE_DIR}/underlord-utils/src/log_format.c
     ${CMAKE_SOURCE_DIR}/my-vmm/src/vmm_protocol_core.c
+    ${CMAKE_SOURCE_DIR}/my-vmm/src/vmm_guest_contract.c
     ${CMAKE_SOURCE_DIR}/hypervisor/src/vmm_lifecycle.c
     ${CMAKE_SOURCE_DIR}/hypervisor/src/vmm_image.c
 )

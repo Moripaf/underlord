@@ -2,28 +2,52 @@
 
 /***
  * @file vmm_protocol_core.h
- * Architecture-independent encoding for Phase-1 child control messages.
+ * Architecture-independent encoding for Phase-2 child supervision messages.
  */
 
 #include <stdint.h>
 
 /***
  * @define VMM_PROTOCOL_VERSION
- * Version of the fixed one-word control protocol.
+ * Version of the fixed supervision protocol.
  * @sideeffect None.
  */
-#define VMM_PROTOCOL_VERSION 1U
-#define VMM_PROTOCOL_READY_WORD 0x554C0101U
-#define VMM_PROTOCOL_FAULT_WORD 0x554C0102U
+#define VMM_PROTOCOL_VERSION 2U
+#define VMM_PROTOCOL_READY_WORD 0x554C0201U
+#define VMM_PROTOCOL_GUEST_LOADING_WORD 0x554C0202U
+#define VMM_PROTOCOL_GUEST_BOOTING_WORD 0x554C0203U
+#define VMM_PROTOCOL_GUEST_STARTED_WORD 0x554C0204U
+#define VMM_PROTOCOL_GUEST_STOPPED_WORD 0x554C0205U
+#define VMM_PROTOCOL_GUEST_FAILED_WORD 0x554C0206U
 
 /***
  * @enum vmm_protocol_message_t
- * Messages a child can send to its supervising hypervisor.
+ * Ordered status messages a VMM sends to its supervising hypervisor.
  */
 typedef enum {
     VMM_PROTOCOL_READY = 1,
-    VMM_PROTOCOL_FAULT = 2,
+    VMM_PROTOCOL_GUEST_LOADING = 2,
+    VMM_PROTOCOL_GUEST_BOOTING = 3,
+    VMM_PROTOCOL_GUEST_STARTED = 4,
+    VMM_PROTOCOL_GUEST_STOPPED = 5,
+    VMM_PROTOCOL_GUEST_FAILED = 6,
 } vmm_protocol_message_t;
+
+/*** @enum vmm_failure_stage_t
+ * Typed construction or runtime failure stage sent with GUEST_FAILED.
+ */
+typedef enum {
+    VMM_FAILURE_RESOURCE_BOOTSTRAP = 1,
+    VMM_FAILURE_DESCRIPTOR,
+    VMM_FAILURE_ELF,
+    VMM_FAILURE_VM,
+    VMM_FAILURE_RAM,
+    VMM_FAILURE_FDT,
+    VMM_FAILURE_INTERRUPT_CONTROLLER,
+    VMM_FAILURE_PL011,
+    VMM_FAILURE_VCPU,
+    VMM_FAILURE_RUNTIME,
+} vmm_failure_stage_t;
 
 /***
  * @function vmm_protocol_encode(message, word)

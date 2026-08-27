@@ -12,6 +12,10 @@ enable_language(ASM)
 add_executable(${PROJECT_NAME}
     src/main.c
     src/vmm_protocol_core.c
+    src/vmm_guest_contract.c
+    src/vmm_elf.c
+    src/vmm_resources.c
+    src/vmm_vm.c
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
@@ -33,6 +37,9 @@ target_link_libraries(
         sel4utils
         sel4platsupport
         sel4debug
+        sel4allocman
+        sel4vm
+        sel4vmmplatsupport
         underlord-utils
         # optional user libs if needed:
         # sel4debug

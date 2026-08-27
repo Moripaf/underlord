@@ -2,7 +2,7 @@
 
 /***
  * @file vmm_protocol.h
- * seL4 binding for the Phase-1 VMM control-capability manifest.
+ * seL4 binding for the Phase-2 VMM capability manifest.
  */
 
 #include <sel4/sel4.h>
@@ -12,14 +12,17 @@
 
 /***
  * @define VMM_CONTROL_ENDPOINT_SLOT
- * Phase-1 child capability manifest slot.
+ * Child supervisor-event endpoint slot.
  * sel4utils owns slots 1-7: CNode, fault endpoint, VSpace root, ASID pool,
  * TCB, and (where applicable) scheduling/reply objects. The hypervisor then
- * installs exactly one additional capability at slot 8: this control endpoint.
- * No untyped, IRQ, device, I/O, scheduling, VM, or vCPU capabilities are
- * delegated to the VMM in Phase 1.
+ * installs the badged supervisor-event endpoint at slot 8, its bounded
+ * construction untyped at slot 9, and the GICv2 virtual CPU interface frame
+ * at slot 10.
  * @pre The child process was configured through sel4utils.
  * @sideeffect Defines the fixed slot used by VMM control IPC.
  * @error Using another slot breaks the capability-manifest contract.
  */
 #define VMM_CONTROL_ENDPOINT_SLOT ((seL4_CPtr)SEL4UTILS_FIRST_FREE)
+#define VMM_DELEGATED_UNTYPED_SLOT ((seL4_CPtr)(SEL4UTILS_FIRST_FREE + 1))
+#define VMM_GIC_VCPU_INTERFACE_SLOT ((seL4_CPtr)(SEL4UTILS_FIRST_FREE + 2))
+#define VMM_SUPERVISOR_EVENT_BADGE ((seL4_Word)0x554c0001U)

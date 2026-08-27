@@ -6,3 +6,9 @@ int vmm_image_metadata_valid(const char *name, size_t size)
 {
     return name != NULL && strcmp(name, VMM_IMAGE_NAME) == 0 && size != 0;
 }
+
+int vmm_guest_image_metadata_valid(const char *name, size_t size)
+{
+    return name != NULL && strcmp(name, VMM_GUEST_IMAGE_NAME) == 0 && size != 0 &&
+           size <= VMM_GUEST_IMAGE_MAX_SIZE;
+}

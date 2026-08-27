@@ -27,6 +27,8 @@ typedef struct {
     vka_t vka;
     vspace_t vspace;
     sel4utils_alloc_data_t vspace_data;
+    seL4_CPtr vmm_untyped;
+    size_t vmm_untyped_size_bits;
 } hypervisor_context_t;
 
 /***

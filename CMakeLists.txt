@@ -11,6 +11,18 @@ project(Underlord)
 option(VMM_FAULT_TEST "Make the Phase 1 VMM deliberately fault after startup" OFF)
 option(UNDERLORD_BUILD_TESTS "Build Underlord host and seL4 test targets" OFF)
 
+# Phase 2 deliberately consumes an externally built Unikraft artifact.  Do
+# not build or alter the catalog application from this project.
+set(UNIKRAFT_GUEST_ELF "" CACHE FILEPATH "AArch64 QEMU-virt Unikraft c-hello ELF")
+set(UNIKRAFT_GUEST_CONFIG "" CACHE FILEPATH "Final .config used for UNIKRAFT_GUEST_ELF")
+if(NOT UNDERLORD_BUILD_TESTS)
+    if(NOT EXISTS "${UNIKRAFT_GUEST_ELF}" OR NOT EXISTS "${UNIKRAFT_GUEST_CONFIG}")
+        message(FATAL_ERROR "Phase 2 requires UNIKRAFT_GUEST_ELF and UNIKRAFT_GUEST_CONFIG files")
+    endif()
+    include(${CMAKE_SOURCE_DIR}/cmake/validate_unikraft_config.cmake)
+    underlord_validate_unikraft_config("${UNIKRAFT_GUEST_CONFIG}")
+endif()
+
 # elfloader strips AArch64 kernel and root-task ELF files; use the matching
 # cross-binutils tool instead of the host strip binary.
 find_program(SEL4_CROSS_STRIP NAMES aarch64-linux-gnu-strip REQUIRED)

@@ -3,13 +3,40 @@
 #include <underlord/vlog.h>
 
 #include "vmm_protocol.h"
+#include "vmm_guest_contract.h"
+#include "vmm_resources.h"
+#include "vmm_vm.h"
 
 int main(void)
 {
     uint32_t ready_word;
+    vmm_guest_state_t guest_state = VMM_GUEST_NONE;
+    vmm_resources_t resources;
+    vmm_vm_t vm;
 
     underlord_vlog_info(0, "started");
+    int resource_error = vmm_resources_bootstrap(&resources);
+    if (resource_error != 0) {
+        underlord_vlog_error(0, "delegated allocator bootstrap failed (%d)", resource_error);
+        return -1;
+    }
+    if (vmm_shared_image_descriptor_valid(
+            (const vmm_shared_image_descriptor_t *)(uintptr_t)VMM_SHARED_IMAGE_ADDRESS,
+            VMM_SHARED_IMAGE_OFFSET + VMM_GUEST_ELF_MAX_SIZE) != 0) {
+        underlord_vlog_error(0, "shared guest-image descriptor is invalid");
+        return -1;
+    }
+    if (vmm_vm_bootstrap(&vm, &resources) != 0) {
+        underlord_vlog_error(0, "VM construction failed");
+        return -1;
+    }
     if (vmm_protocol_encode(VMM_PROTOCOL_READY, &ready_word) != 0) {
+        return -1;
+    }
+    seL4_SetMR(0, ready_word);
+    seL4_Send(VMM_CONTROL_ENDPOINT_SLOT, seL4_MessageInfo_new(0, 0, 0, 1));
+    if (vmm_guest_transition(&guest_state, VMM_GUEST_EVENT_LOAD) != 0 ||
+        vmm_protocol_encode(VMM_PROTOCOL_GUEST_LOADING, &ready_word) != 0) {
         return -1;
     }
     seL4_SetMR(0, ready_word);

@@ -8,8 +8,10 @@ add_executable(${PROJECT_NAME}
     src/root_bootstrap.c
     src/vmm_image.c
     src/vmm_lifecycle.c
+    src/vmm_resource.c
     src/vmm_manager.c
     ${CMAKE_SOURCE_DIR}/my-vmm/src/vmm_protocol_core.c
+    ${CMAKE_SOURCE_DIR}/my-vmm/src/vmm_guest_contract.c
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -33,7 +35,8 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 include(cpio)
-MakeCPIO(archive.o "$<TARGET_FILE:my-vmm>")
+configure_file(${UNIKRAFT_GUEST_ELF} ${CMAKE_CURRENT_BINARY_DIR}/c-hello COPYONLY)
+MakeCPIO(archive.o "$<TARGET_FILE:my-vmm>;${CMAKE_CURRENT_BINARY_DIR}/c-hello")
 
 include(${SEL4_ROOT}/tools/seL4/cmake-tool/helpers/rootserver.cmake)
 DeclareRootserver(${PROJECT_NAME})

@@ -25,6 +25,11 @@ hypervisor)
         "$source_root/hypervisor/tests/vmm_image_test.c" \
         "$source_root/hypervisor/src/vmm_image.c" -o "$work_dir/image"
     "$work_dir/image"
+    "$host_cc" -std=c11 -Wall -Wextra -Werror \
+        -I"$source_root/hypervisor/include" \
+        "$source_root/hypervisor/tests/vmm_resource_test.c" \
+        "$source_root/hypervisor/src/vmm_resource.c" -o "$work_dir/resource"
+    "$work_dir/resource"
     exit 0
     ;;
 vmm)
@@ -32,6 +37,18 @@ vmm)
         -I"$source_root/my-vmm/include" \
         "$source_root/my-vmm/tests/vmm_protocol_test.c" \
         "$source_root/my-vmm/src/vmm_protocol_core.c" -o "$work_dir/test"
+    "$work_dir/test"
+    "$host_cc" -std=c11 -Wall -Wextra -Werror \
+        -I"$source_root/my-vmm/include" \
+        "$source_root/my-vmm/tests/vmm_guest_contract_test.c" \
+        "$source_root/my-vmm/src/vmm_guest_contract.c" -o "$work_dir/contract"
+    "$work_dir/contract"
+    "$host_cc" -std=c11 -Wall -Wextra -Werror \
+        -I"$source_root/my-vmm/include" \
+        "$source_root/my-vmm/tests/vmm_elf_test.c" \
+        "$source_root/my-vmm/src/vmm_elf.c" -o "$work_dir/elf"
+    "$work_dir/elf"
+    exit 0
     ;;
 *)
     exit 2

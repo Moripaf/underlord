@@ -1,8 +1,8 @@
 # Underlord Architecture
 
 Underlord is an seL4-based system for running Unikraft unikernels in VMs. The
-current milestone establishes the process boundary: a root-task hypervisor
-creates and supervises one VMM child. No guest VM is booted yet.
+current milestone establishes fixed Phase-2 contracts for one AArch64
+Unikraft guest hosted by one VMM child.
 
 ## System overview
 
@@ -15,14 +15,14 @@ elfloader → seL4 kernel
         ▼
 hypervisor root task
   ├── owns initial authority and allocation
-  ├── embeds the VMM ELF in CPIO
+  ├── embeds the VMM and `c-hello` ELFs in CPIO
   └── creates and supervises one child
         │
         ▼
 my-vmm child task
   ├── receives a restricted CSpace
-  ├── performs a READY handshake
-  └── blocks awaiting control
+  ├── reports versioned guest lifecycle events
+  └── owns one bounded construction budget
 ```
 
 The [hypervisor](hypervisor.md) owns root authority and VMM lifecycle. The
@@ -52,13 +52,22 @@ backend. It exposes VMM logging through `underlord/vlog.h` and keeps
 ## Build and feedback loop
 
 The project uses CMake and Ninja with the seL4 build system. Its defaults are
-AArch64 `qemu-arm-virt`, ARM hypervisor support, GICv2, 1024 MiB RAM, and a
+AArch64 `qemu-arm-virt`, ARM hypervisor support, GICv2, 2048 MiB RAM, and a
 debug-oriented build. `my-vmm` is built first and packaged into the
-`hypervisor` rootserver through `MakeCPIO`.
+`hypervisor` rootserver through `MakeCPIO`. Normal builds require an external
+`UNIKRAFT_GUEST_ELF` and its `UNIKRAFT_GUEST_CONFIG`; Underlord validates but
+does not build or modify the catalog application.
+
+Phase 2 uses 2048 MiB rather than 1024 MiB because the rootserver's placement
+at 1 GiB leaves no 2^28 non-device boot untyped. The fixed VMM construction
+budget requires that contiguous capability even though the guest itself uses
+only 128 MiB.
 
 ```sh
 cd $PROJECTROOT
-./init-build.sh --sel4-root /path/to/sel4-checkout
+./init-build.sh --sel4-root /path/to/sel4-checkout \
+  -DUNIKRAFT_GUEST_ELF=/path/to/c-hello \
+  -DUNIKRAFT_GUEST_CONFIG=/path/to/.config
 cd build
 ninja
 ./simulate
@@ -69,7 +78,6 @@ separate build mode described in [Testing Strategy](testing_strategy.md).
 
 ## Current boundary
 
-The system supports one static VMM, one startup handshake, and terminal fault
-reporting. It does not yet provide guest creation, VM/vCPU setup, resource
-delegation, virtual devices, restart/reclamation, monitoring, or an external
-management API.
+The fixed Phase-2 scope excludes multiple guests/vCPUs, virtio, SMP, dynamic
+resource requests, restart/reclamation, monitoring, and an external management
+API. See the detailed [Phase-2 plan](phase_2_initial_vmm_plan.md).

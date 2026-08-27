@@ -43,8 +43,8 @@ formatting. `main.c` should only wire those modules together.
 | Component | Host unit tests | seL4/QEMU component tests |
 |---|---|---|
 | `underlord-utils` | Log-level name lookup, prefix construction, truncation, and invalid levels. Extract formatting from the direct `printf` backend so it can be asserted. | Verify emitted target output has the expected `[LEVEL] module:` form. |
-| `hypervisor` | Lifecycle transition rules and capability-manifest policy, if factored into pure modules. | Root bootstrap succeeds; CPIO contains `my-vmm`; child process configures; control cap appears only at the manifest slot; failure paths leave the instance non-running. |
-| `my-vmm` | Control-message encoding/decoding and local state machines, once introduced. | Starts with its expected slot; sends/receives a control message; blocks when idle; fault-test build faults predictably. |
+| `hypervisor` | Lifecycle transition rules, guest-image metadata, and capability-manifest selection. | Root bootstrap succeeds; CPIO contains `my-vmm` and `c-hello`; child process configures; slots 8--10 contain only the event endpoint, construction untyped, and GIC frame; failure paths leave the instance non-running. |
+| `my-vmm` | Control-message encoding/decoding, guest lifecycle, shared-image descriptor, ELF admission, and resource-bootstrap rules. | Starts with the fixed manifest; reserves its IPC page while bootstrapping VSpace; allocates and frees a local endpoint; sends `VMM_READY`; fault-test build faults predictably. |
 | CPIO/ELF packaging | Archive-name and metadata validation that can be pure. | The target-side loader finds and loads the embedded VMM ELF. |
 
 Keep capability tests target-side. A host test cannot prove CSpace contents,
@@ -112,7 +112,7 @@ ctest --output-on-failure
 ```
 
 The test wrapper must preserve the configured simulator defaults: QEMU
-`qemu-arm-virt`, AArch64, GICv2, 1024 MiB memory, and ARM virtualization
+`qemu-arm-virt`, AArch64, GICv2, 2048 MiB memory, and ARM virtualization
 enabled. That ensures failures are representative of the deployable build.
 
 ## Adoption order

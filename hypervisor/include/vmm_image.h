@@ -2,7 +2,7 @@
 
 /***
  * @file vmm_image.h
- * Pure validation rules for the embedded Phase-1 VMM image.
+ * Pure validation rules for embedded Phase-2 VMM and guest images.
  */
 
 #include <stddef.h>
@@ -12,6 +12,8 @@
  * Stable non-empty CPIO entry name expected by the process loader.
  */
 #define VMM_IMAGE_NAME "my-vmm"
+#define VMM_GUEST_IMAGE_NAME "c-hello"
+#define VMM_GUEST_IMAGE_MAX_SIZE (8U * 1024U * 1024U)
 
 /***
  * @function vmm_image_metadata_valid(name, size)
@@ -24,3 +26,12 @@
  * @error NULL names and empty images are rejected.
  */
 int vmm_image_metadata_valid(const char *name, size_t size);
+
+/*** @function vmm_guest_image_metadata_valid(name, size)
+ * Validate the CPIO guest artifact before exposing it to the VMM.
+ * @param name Archive entry name.
+ * @param size Guest ELF byte count.
+ * @return Non-zero only for the fixed guest entry and allowed non-zero size.
+ * @sideeffect None.
+ */
+int vmm_guest_image_metadata_valid(const char *name, size_t size);
