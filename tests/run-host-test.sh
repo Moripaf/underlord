@@ -48,6 +48,11 @@ vmm)
         "$source_root/my-vmm/tests/vmm_elf_test.c" \
         "$source_root/my-vmm/src/vmm_elf.c" -o "$work_dir/elf"
     "$work_dir/elf"
+    "$host_cc" -std=c11 -Wall -Wextra -Werror \
+        -I"$source_root/my-vmm/include" \
+        "$source_root/my-vmm/tests/vmm_guest_ram_state_test.c" \
+        "$source_root/my-vmm/src/vmm_guest_ram_state.c" -o "$work_dir/ram"
+    "$work_dir/ram"
     exit 0
     ;;
 *)

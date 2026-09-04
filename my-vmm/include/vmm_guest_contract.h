@@ -14,7 +14,7 @@
 #define VMM_GUEST_ELF_MAX_SIZE (UINT64_C(8) * 1024 * 1024)
 #define VMM_SHARED_IMAGE_ADDRESS UINT64_C(0x7000000000)
 #define VMM_SHARED_IMAGE_MAGIC UINT32_C(0x554c494d)
-#define VMM_SHARED_IMAGE_VERSION 1U
+#define VMM_SHARED_IMAGE_VERSION 2U
 #define VMM_SHARED_IMAGE_OFFSET 4096U
 
 /*** @struct vmm_shared_image_descriptor_t
@@ -25,6 +25,10 @@
  * @param image_offset Page-aligned ELF offset.
  * @param image_length Exact ELF byte length.
  * @param mapped_length Total mapped bytes, including descriptor page.
+ * @param delegated_untyped_paddr Physical base of child slot 9.
+ * @param delegated_untyped_size_bits Exact size bits of child slot 9.
+ * @param vmm_stack_guard_base Base of the root-created child stack guard page.
+ * @param vmm_stack_reserved_length Guard and mapped stack byte length.
  */
 typedef struct __attribute__((packed)) {
     uint32_t magic;
@@ -33,7 +37,11 @@ typedef struct __attribute__((packed)) {
     uint32_t image_offset;
     uint32_t image_length;
     uint64_t mapped_length;
-    uint64_t reserved;
+    uint64_t delegated_untyped_paddr;
+    uint8_t delegated_untyped_size_bits;
+    uint8_t reserved[7];
+    uint64_t vmm_stack_guard_base;
+    uint64_t vmm_stack_reserved_length;
 } vmm_shared_image_descriptor_t;
 
 /*** @enum vmm_guest_state_t

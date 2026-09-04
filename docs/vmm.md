@@ -12,10 +12,12 @@ become terminal `FAILED`.
 
 The VMM has its own TCB, CSpace, VSpace, stack, and fault endpoint created by
 `sel4utils`. On startup it bootstraps a local allocman, VKA, and VSpace from
-slot 9 alone, reserving its IPC-buffer page and a 4 MiB allocator virtual pool
-before it reports `VMM_READY`. Slot 9 is one bounded delegated untyped and slot
-10 is the GICv2 virtual CPU interface frame. It receives no other root, IRQ,
-device, or I/O authority.
+the exact metadata in manifest version 2, reserving its IPC-buffer page and a
+4 MiB allocator virtual pool before it reports `VMM_READY`. It first reserves
+the root-created stack-and-guard range so allocator growth cannot replace a
+live stack mapping. The complete slot,
+anonymous-RAM, device, and authority model belongs to
+[Memory architecture](memory_architecture.md).
 
 Before `VMM_READY`, the VMM validates the descriptor at `0x7000000000`. The
 descriptor and `c-hello` bytes are mapped read-only by the root task; their

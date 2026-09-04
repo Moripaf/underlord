@@ -2,6 +2,10 @@
 
 ## Decision
 
+The [memory architecture](memory_architecture.md) owns Phase-2 RAM test facts.
+Host tests validate manifest geometry and lifecycle admission; AArch64 QEMU is
+the only proof of child allocator, vGIC, and anonymous-RAM behavior.
+
 Use two complementary test layers:
 
 1. **Host unit tests** for pure C logic that has no seL4 dependency.

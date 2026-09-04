@@ -6,13 +6,11 @@ runtime FDT. The VMM reports `VMM_READY`, `GUEST_LOADING`, `GUEST_BOOTING`,
 `GUEST_STARTED`, then `GUEST_STOPPED`; failure is terminal and reports a typed
 stage and signed error.
 
-The root task remains the authority owner. It grants only a selected 128 MiB
-non-device untyped in child slot 9, a badged supervisor endpoint in slot 8,
-and the GICv2 virtual CPU interface frame in slot 10. The VMM uses a 16-bit
-CSpace; sel4utils retains slots 1--7. The guest ELF is packed as `c-hello`,
-validated to be no more than 8 MiB, copied to root-owned frames, and exposed
-read-only at VMM VA `0x7000000000` with a version-1 descriptor in its first
-page. The descriptor's ELF begins at offset 4096.
+The root task remains the authority owner. The [Memory architecture](memory_architecture.md)
+owns its version-2 manifest, anonymous-RAM allocation, slot 8--11 capability
+contract, and address map. The guest ELF is packed as `c-hello`, validated to
+be no more than 8 MiB, copied to root-owned frames, and exposed read-only at
+VMM VA `0x7000000000`; the descriptor's ELF begins at offset 4096.
 
 The VMM rejects every ELF except ELF64 little-endian `ET_EXEC` `EM_AARCH64`
 images whose loadable segments are identity-addressed, non-overlapping, inside

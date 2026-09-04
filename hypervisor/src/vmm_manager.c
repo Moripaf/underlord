@@ -46,6 +46,9 @@ static int map_guest_image(hypervisor_context_t *context, vmm_instance_t *instan
   const size_t descriptor_page = VMM_SHARED_IMAGE_OFFSET;
   size_t mapped_length;
   size_t pages;
+  size_t stack_bytes;
+  uintptr_t stack_base;
+  uintptr_t stack_guard_base;
   reservation_t reservation;
   vmm_shared_image_descriptor_t *descriptor;
 
@@ -66,6 +69,18 @@ static int map_guest_image(hypervisor_context_t *context, vmm_instance_t *instan
     underlord_hlog_error("guest image mapping page count is invalid");
     return -1;
   }
+  if (instance->process.thread.stack_size == 0 ||
+      instance->process.thread.stack_size > SIZE_MAX >> seL4_PageBits) {
+    underlord_hlog_error("VMM instance %u stack geometry is invalid", instance->id);
+    return -1;
+  }
+  stack_bytes = instance->process.thread.stack_size << seL4_PageBits;
+  if ((uintptr_t)instance->process.thread.stack_top < stack_bytes + BIT(seL4_PageBits)) {
+    underlord_hlog_error("VMM instance %u stack address underflows", instance->id);
+    return -1;
+  }
+  stack_base = (uintptr_t)instance->process.thread.stack_top - stack_bytes;
+  stack_guard_base = stack_base - BIT(seL4_PageBits);
 
   instance->guest_image = vspace_new_pages(&context->vspace, seL4_AllRights,
                                             pages, seL4_PageBits);
@@ -82,6 +97,10 @@ static int map_guest_image(hypervisor_context_t *context, vmm_instance_t *instan
       .image_offset = VMM_SHARED_IMAGE_OFFSET,
       .image_length = (uint32_t)image_length,
       .mapped_length = mapped_length,
+      .delegated_untyped_paddr = context->vmm_untyped_paddr,
+      .delegated_untyped_size_bits = (uint8_t)context->vmm_untyped_size_bits,
+      .vmm_stack_guard_base = stack_guard_base,
+      .vmm_stack_reserved_length = stack_bytes + BIT(seL4_PageBits),
   };
   memcpy((char *)instance->guest_image + descriptor_page, image, (size_t)image_length);
 
@@ -150,6 +169,17 @@ int vmm_instance_start(hypervisor_context_t *context,
     underlord_hlog_error("VMM instance %u GICv2 VCPU interface capability install failed", instance->id);
     goto failed;
   }
+  if (vka_alloc_frame_at(&context->vka, seL4_PageBits, 0x09000000,
+                         &instance->pl011_frame) != 0) {
+    underlord_hlog_error("VMM instance %u PL011 frame allocation failed", instance->id);
+    goto failed;
+  }
+  child_slot = sel4utils_copy_cap_to_process(&instance->process, &context->vka,
+                                             instance->pl011_frame.cptr);
+  if (child_slot != VMM_PL011_FRAME_SLOT) {
+    underlord_hlog_error("VMM instance %u PL011 capability install failed", instance->id);
+    goto failed;
+  }
   if (map_guest_image(context, instance) != 0) {
     goto failed;
   }
@@ -164,12 +194,15 @@ int vmm_instance_start(hypervisor_context_t *context,
     vmm_protocol_message_t message;
     seL4_Word badge = 0;
 
-    seL4_Wait(instance->control_endpoint.cptr, &badge);
+    seL4_MessageInfo_t info = seL4_Recv(instance->control_endpoint.cptr, &badge);
     if (badge != VMM_SUPERVISOR_EVENT_BADGE || vmm_protocol_decode((uint32_t)seL4_GetMR(0), &message) != 0 ||
         message != VMM_PROTOCOL_READY ||
         vmm_lifecycle_transition(&instance->state, VMM_EVENT_READY) != 0) {
-      underlord_hlog_error("VMM instance %u sent an invalid startup message",
-                           instance->id);
+      underlord_hlog_error("VMM instance %u sent an invalid startup message (badge=%lu label=%lu length=%lu mr0=%lu)",
+                           instance->id, (unsigned long)badge,
+                           (unsigned long)seL4_MessageInfo_get_label(info),
+                           (unsigned long)seL4_MessageInfo_get_length(info),
+                           (unsigned long)seL4_GetMR(0));
       goto failed;
     }
   }

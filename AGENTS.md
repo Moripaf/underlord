@@ -14,8 +14,6 @@ the work:
   behavior, and control protocol.
 - [`docs/testing_strategy.md`](docs/testing_strategy.md) for test layers,
   targets, scenarios, and QEMU automation.
-- [`docs/thinking/unikraft_boot_requirements.md`](docs/thinking/unikraft_boot_requirements.md)
-  for researched Unikraft guest boot requirements.
 
 Do not duplicate concepts between documents. Update the document that owns the
 concept and link to it from other documents when context is needed.

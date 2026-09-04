@@ -15,15 +15,17 @@ int main(void)
     vmm_vm_t vm;
 
     underlord_vlog_info(0, "started");
-    int resource_error = vmm_resources_bootstrap(&resources);
-    if (resource_error != 0) {
-        underlord_vlog_error(0, "delegated allocator bootstrap failed (%d)", resource_error);
+    const vmm_shared_image_descriptor_t *manifest =
+        (const vmm_shared_image_descriptor_t *)(uintptr_t)VMM_SHARED_IMAGE_ADDRESS;
+
+    if (vmm_shared_image_descriptor_valid(manifest,
+                                          VMM_SHARED_IMAGE_OFFSET + VMM_GUEST_ELF_MAX_SIZE) != 0) {
+        underlord_vlog_error(0, "shared guest-image manifest is invalid");
         return -1;
     }
-    if (vmm_shared_image_descriptor_valid(
-            (const vmm_shared_image_descriptor_t *)(uintptr_t)VMM_SHARED_IMAGE_ADDRESS,
-            VMM_SHARED_IMAGE_OFFSET + VMM_GUEST_ELF_MAX_SIZE) != 0) {
-        underlord_vlog_error(0, "shared guest-image descriptor is invalid");
+    int resource_error = vmm_resources_bootstrap(&resources, manifest);
+    if (resource_error != 0) {
+        underlord_vlog_error(0, "delegated allocator bootstrap failed (%d)", resource_error);
         return -1;
     }
     if (vmm_vm_bootstrap(&vm, &resources) != 0) {

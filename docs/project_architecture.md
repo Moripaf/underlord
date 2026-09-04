@@ -26,7 +26,9 @@ my-vmm child task
 ```
 
 The [hypervisor](hypervisor.md) owns root authority and VMM lifecycle. The
-[VMM](vmm.md) defines the child-side capability and control protocol.
+[VMM](vmm.md) defines the child-side capability and control protocol. The
+[memory architecture](memory_architecture.md) owns guest RAM and delegated
+capability details.
 
 ## Repository and modules
 

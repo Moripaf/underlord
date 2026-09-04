@@ -20,6 +20,9 @@
  * @param {vka_t} vka                     Object allocator backed by allocman.
  * @param {vspace_t} vspace               Root virtual-memory allocator.
  * @param {sel4utils_alloc_data_t} vspace_data Backing data for vspace.
+ * @param {seL4_CPtr} vmm_untyped Delegated normal-RAM untyped retained by root.
+ * @param {size_t} vmm_untyped_size_bits Exact delegated untyped size.
+ * @param {uintptr_t} vmm_untyped_paddr Exact delegated untyped physical base.
  */
 typedef struct {
     simple_t simple;
@@ -29,6 +32,7 @@ typedef struct {
     sel4utils_alloc_data_t vspace_data;
     seL4_CPtr vmm_untyped;
     size_t vmm_untyped_size_bits;
+    uintptr_t vmm_untyped_paddr;
 } hypervisor_context_t;
 
 /***

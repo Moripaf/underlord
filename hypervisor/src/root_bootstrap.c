@@ -57,7 +57,8 @@ static int select_vmm_untyped(hypervisor_context_t *context)
         return -1;
     }
     context->vmm_untyped = simple_get_nth_untyped(&context->simple, reserved_untyped_index,
-                                                   &selected_bits, NULL, NULL);
+                                                   &selected_bits,
+                                                   &context->vmm_untyped_paddr, NULL);
     context->vmm_untyped_size_bits = selected_bits;
     return 0;
 }

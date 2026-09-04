@@ -41,11 +41,10 @@ currently reclaimed.
 ## Authority and capability contract
 
 The hypervisor retains initial root-task authority and provisions the child
-according to the [VMM capability
-contract](vmm.md#runtime-behavior-and-capabilities). The Phase-2 capability
-manifest specifies one non-device boot untyped of at least 128 MiB, a 16-bit
-child CSpace, and only the event endpoint, construction untyped, and GICv2
-virtual-CPU interface frame.
+according to the [VMM capability contract](vmm.md#runtime-behavior-and-capabilities).
+Manifest version 2 carries the selected ordinary untyped's exact size bits and
+physical base; the root retains its original cap. The complete slot and memory
+contract belongs to [Memory architecture](memory_architecture.md).
 
 The hypervisor validates both the VMM and fixed `c-hello` CPIO entries before
 child start. The VMM is not reported running until it sends `VMM_READY`; guest

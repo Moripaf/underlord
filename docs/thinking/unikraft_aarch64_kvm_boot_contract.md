@@ -8,6 +8,10 @@ It is the Phase 2 source of truth. The older
 about the x86 Multiboot investigation and must not be used for the AArch64
 VMM.
 
+The [memory architecture](../memory_architecture.md) owns host backing,
+delegated capabilities, and stage-2 RAM allocation; this document owns only
+the guest ABI and boot contents.
+
 ## Decision for Phase 2
 
 Build one fixed AArch64 QEMU-virt Unikraft image using
