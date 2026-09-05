@@ -15,7 +15,7 @@ elfloader → seL4 kernel
         ▼
 hypervisor root task
   ├── owns initial authority and allocation
-  ├── embeds the VMM and `c-hello` ELFs in CPIO
+  ├── embeds the VMM and both compatible hello ELFs in CPIO
   └── creates and supervises one child
         │
         ▼
@@ -61,9 +61,12 @@ to no-ops.
 The project uses CMake and Ninja with the seL4 build system. Its defaults are
 AArch64 `qemu-arm-virt`, ARM hypervisor support, GICv2, 2048 MiB RAM, and a
 debug-oriented build. `my-vmm` is built first and packaged into the
-`hypervisor` rootserver through `MakeCPIO`. Normal builds require an external
-`UNIKRAFT_GUEST_ELF` and its `UNIKRAFT_GUEST_CONFIG`; Underlord validates but
-does not build or modify the catalog application.
+`hypervisor` rootserver through `MakeCPIO`. Normal builds require externally
+built `c-hello` and `cpp-hello` ELFs with matching `.config` sidecars;
+`UNDERLORD_GUEST` selects which bundled image starts. Underlord validates but
+does not build or modify catalog applications. All Underlord-facing cache
+options and their defaults are declared together in `settings.cmake`; the
+top-level `CMakeLists.txt` retains only validation and build-graph logic.
 
 Phase 2 uses 2048 MiB rather than 1024 MiB because the rootserver's placement
 at 1 GiB leaves no 2^28 non-device boot untyped. The fixed VMM construction
@@ -73,8 +76,7 @@ only 128 MiB.
 ```sh
 cd $PROJECTROOT
 ./init-build.sh --sel4-root /path/to/sel4-checkout \
-  -DUNIKRAFT_GUEST_ELF=/path/to/c-hello \
-  -DUNIKRAFT_GUEST_CONFIG=/path/to/.config
+  -DUNDERLORD_GUEST=cpp-hello
 cd build
 ninja
 ./simulate

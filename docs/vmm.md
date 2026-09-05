@@ -20,8 +20,8 @@ anonymous-RAM, device, and authority model belongs to
 [Memory architecture](memory_architecture.md).
 
 Before `VMM_READY`, the VMM validates the descriptor at `0x7000000000`. The
-descriptor and `c-hello` bytes are mapped read-only by the root task; their
-frame capabilities are retained in root CSpace. After READY, VMM emits
+descriptor and selected compatible guest bytes are mapped read-only by the
+root task; their frame capabilities are retained in root CSpace. After READY, VMM emits
 `GUEST_LOADING` only after admitting this immutable input.
 
 ## Verified implementation boundary (2026-09-05)

@@ -19,6 +19,28 @@
 # ../griddle --PLATFORM=sabre --SIMULATION
 # ninja
 #
+# Underlord project options
+# Enable the deliberate post-startup fault path used to exercise VMM fault supervision.
+option(VMM_FAULT_TEST "Make the Phase 1 VMM deliberately fault after startup" OFF)
+# Build host-side tests and seL4 test targets instead of requiring bundled guest artifacts.
+option(UNDERLORD_BUILD_TESTS "Build Underlord host and seL4 test targets" OFF)
+# Select which bundled Unikraft hello guest the normal hypervisor startup launches.
+set(UNDERLORD_GUEST "c-hello" CACHE STRING "Bundled guest selected for the normal hypervisor startup")
+set_property(CACHE UNDERLORD_GUEST PROPERTY STRINGS c-hello cpp-hello)
+# Keep the accepted log severities available to configure-time validation.
+set(_underlord_log_levels TRACE DEBUG INFO WARN ERROR CACHE INTERNAL "Underlord log levels")
+# Select the minimum severity emitted by Underlord's structured logging macros.
+set(UNDERLORD_LOG_LEVEL "INFO" CACHE STRING "Minimum Underlord log level (TRACE, DEBUG, INFO, WARN, or ERROR)")
+set_property(CACHE UNDERLORD_LOG_LEVEL PROPERTY STRINGS TRACE DEBUG INFO WARN ERROR)
+# Use the externally built C hello ELF image for packaging and ELF admission checks.
+set(UNDERLORD_C_GUEST_ELF "/var/Code/final-proj/catalog-arm/c-hello/workdir/build/c-hello-arm_qemu-arm64" CACHE FILEPATH "AArch64 QEMU-virt Unikraft c-hello ELF")
+# Use the final Unikraft configuration that corresponds to the C hello ELF image.
+set(UNDERLORD_C_GUEST_CONFIG "/var/Code/final-proj/catalog-arm/c-hello/.config" CACHE FILEPATH "Final .config used for c-hello ELF")
+# Use the externally built C++ hello ELF image for packaging and ELF admission checks.
+set(UNDERLORD_CPP_GUEST_ELF "/var/Code/final-proj/catalog-arm/cpp-hello/workdir/build/cpp-hello_qemu-arm64" CACHE FILEPATH "AArch64 QEMU-virt Unikraft cpp-hello ELF")
+# Use the final Unikraft configuration that corresponds to the C++ hello ELF image.
+set(UNDERLORD_CPP_GUEST_CONFIG "/var/Code/final-proj/catalog-arm/cpp-hello/.config" CACHE FILEPATH "Final .config used for cpp-hello ELF")
+
 set(SIMULATION OFF CACHE BOOL "Include only simulation compatible tests")
 set(RELEASE OFF CACHE BOOL "Performance optimized build")
 set(VERIFICATION OFF CACHE BOOL "Only verification friendly kernel features")
@@ -31,6 +53,7 @@ set(NUM_NODES "" CACHE STRING "(if SMP) the number of nodes (default 4)")
 set(PLATFORM "qemu-arm-virt" CACHE STRING "Platform to test")
 set(ARM_HYP ON CACHE BOOL "Hyp mode for ARM platforms")
 set(KernelArmHypervisorSupport ON CACHE BOOL "Hyp mode for ARM platforms")
+set(KernelRootCNodeSizeBits "13" CACHE STRING "Root CNode size for bundled guest image frame caps" FORCE)
 set(MCS OFF CACHE BOOL "MCS kernel")
 set(KernelSel4Arch "aarch64" CACHE STRING "aarch32, aarch64, arm_hyp, ia32, x86_64, riscv32, riscv64")
 set(LibSel4TestPrinterRegex ".*" CACHE STRING "A POSIX regex pattern used to filter tests")

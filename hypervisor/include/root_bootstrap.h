@@ -10,6 +10,7 @@
 #include <simple/simple.h>
 #include <vka/vka.h>
 #include <vspace/vspace.h>
+#include "vmm_image.h"
 
 /***
  * @struct hypervisor_context_t
@@ -23,6 +24,7 @@
  * @param {seL4_CPtr} vmm_untyped Delegated normal-RAM untyped retained by root.
  * @param {size_t} vmm_untyped_size_bits Exact delegated untyped size.
  * @param {uintptr_t} vmm_untyped_paddr Exact delegated untyped physical base.
+ * @param {vka_object_t} guest_image_arena Root-retained untyped reserved for image frames.
  */
 typedef struct {
     simple_t simple;
@@ -33,15 +35,17 @@ typedef struct {
     seL4_CPtr vmm_untyped;
     size_t vmm_untyped_size_bits;
     uintptr_t vmm_untyped_paddr;
+    vka_object_t guest_image_arena;
 } hypervisor_context_t;
 
 /***
- * @function hypervisor_bootstrap(context)
+ * @function hypervisor_bootstrap(context, guest_image)
  * Initialize root-task allocation and virtual-memory services.
  * @param {hypervisor_context_t *} context Writable, uninitialized context storage.
+ * @param {vmm_guest_image_t *} guest_image Selected immutable image view.
  * @pre Runs once in the root task before creating VMM instances.
  * @return 0 on success; -1 when boot info, allocator, VSpace, or pool setup fails.
  * @sideeffect Initializes context and reserves the root allocator virtual pool.
  * @error Leaves later context members unusable after a failed initialization.
  */
-int hypervisor_bootstrap(hypervisor_context_t *context);
+int hypervisor_bootstrap(hypervisor_context_t *context, const vmm_guest_image_t *guest_image);

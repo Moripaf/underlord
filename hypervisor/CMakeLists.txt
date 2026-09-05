@@ -21,6 +21,8 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_SOURCE_DIR}/underlord-utils/hypervisor-include
 )
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE UNDERLORD_GUEST_NAME="${UNDERLORD_GUEST}")
+
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         sel4runtime
@@ -35,8 +37,9 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 include(cpio)
-configure_file(${UNIKRAFT_GUEST_ELF} ${CMAKE_CURRENT_BINARY_DIR}/c-hello COPYONLY)
-MakeCPIO(archive.o "$<TARGET_FILE:my-vmm>;${CMAKE_CURRENT_BINARY_DIR}/c-hello")
+configure_file(${UNDERLORD_C_GUEST_ELF} ${CMAKE_CURRENT_BINARY_DIR}/c-hello COPYONLY)
+configure_file(${UNDERLORD_CPP_GUEST_ELF} ${CMAKE_CURRENT_BINARY_DIR}/cpp-hello COPYONLY)
+MakeCPIO(archive.o "$<TARGET_FILE:my-vmm>;${CMAKE_CURRENT_BINARY_DIR}/c-hello;${CMAKE_CURRENT_BINARY_DIR}/cpp-hello")
 
 include(${SEL4_ROOT}/tools/seL4/cmake-tool/helpers/rootserver.cmake)
 DeclareRootserver(${PROJECT_NAME})

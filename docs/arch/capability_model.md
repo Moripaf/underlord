@@ -19,6 +19,10 @@ the [boot sequence](boot.md) owns operation ordering.
   label, message length, payload, and lifecycle ordering before accepting an
   event.
 
+The root CSpace is configured at 13 bits so the root can retain the frame caps
+for both bundled-image packaging and the selected arena-backed read-only image
+mapping. The child CSpace remains the fixed 16-bit contract below.
+
 ## Authority flow
 
 ```mermaid

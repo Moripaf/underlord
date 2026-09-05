@@ -6,11 +6,13 @@
 
 int main(void) {
   hypervisor_context_t context;
+  vmm_guest_image_t guest_image;
   vmm_instance_t vmm_instance = {.id = 0, .guest_state = VMM_GUEST_NONE,
                                  .state = VMM_CREATED};
 
-  if (hypervisor_bootstrap(&context) != 0 ||
-      vmm_instance_start(&context, &vmm_instance) != 0) {
+  if (vmm_guest_image_from_cpio(UNDERLORD_GUEST_NAME, &guest_image) != 0 ||
+      hypervisor_bootstrap(&context, &guest_image) != 0 ||
+      vmm_instance_start(&context, &vmm_instance, &guest_image) != 0) {
     /* Root-task bootstrap failures are terminal but must not return through
      * an invalid runtime environment. */
     for (;;) {

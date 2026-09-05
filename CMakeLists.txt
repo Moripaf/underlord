@@ -8,25 +8,23 @@ endif()
 
 project(Underlord)
 
-option(VMM_FAULT_TEST "Make the Phase 1 VMM deliberately fault after startup" OFF)
-option(UNDERLORD_BUILD_TESTS "Build Underlord host and seL4 test targets" OFF)
-set(UNDERLORD_LOG_LEVEL "INFO" CACHE STRING "Minimum Underlord log level (TRACE, DEBUG, INFO, WARN, or ERROR)")
-set_property(CACHE UNDERLORD_LOG_LEVEL PROPERTY STRINGS TRACE DEBUG INFO WARN ERROR)
-set(_underlord_log_levels TRACE DEBUG INFO WARN ERROR)
+if(NOT UNDERLORD_GUEST STREQUAL "c-hello" AND NOT UNDERLORD_GUEST STREQUAL "cpp-hello")
+    message(FATAL_ERROR "UNDERLORD_GUEST must be c-hello or cpp-hello")
+endif()
 if(NOT UNDERLORD_LOG_LEVEL IN_LIST _underlord_log_levels)
     message(FATAL_ERROR "UNDERLORD_LOG_LEVEL must be one of: TRACE, DEBUG, INFO, WARN, ERROR")
 endif()
 
-# Phase 2 deliberately consumes an externally built Unikraft artifact.  Do
-# not build or alter the catalog application from this project.
-set(UNIKRAFT_GUEST_ELF "/var/Code/final-proj/catalog-core/c-hello-arm/workdir/build/c-hello-arm_qemu-arm64" CACHE FILEPATH "AArch64 QEMU-virt Unikraft c-hello ELF")
-set(UNIKRAFT_GUEST_CONFIG "/var/Code/final-proj/catalog-core/c-hello-arm/.config" CACHE FILEPATH "Final .config used for UNIKRAFT_GUEST_ELF")
 if(NOT UNDERLORD_BUILD_TESTS)
-    if(NOT EXISTS "${UNIKRAFT_GUEST_ELF}" OR NOT EXISTS "${UNIKRAFT_GUEST_CONFIG}")
-        message(FATAL_ERROR "Phase 2 requires UNIKRAFT_GUEST_ELF and UNIKRAFT_GUEST_CONFIG files")
-    endif()
+    foreach(guest c cpp)
+        string(TOUPPER "${guest}" guest_upper)
+        if(NOT EXISTS "${UNDERLORD_${guest_upper}_GUEST_ELF}" OR NOT EXISTS "${UNDERLORD_${guest_upper}_GUEST_CONFIG}")
+            message(FATAL_ERROR "Phase 2 requires both guest ELF and .config files")
+        endif()
+    endforeach()
     include(${CMAKE_SOURCE_DIR}/cmake/validate_unikraft_config.cmake)
-    underlord_validate_unikraft_config("${UNIKRAFT_GUEST_CONFIG}")
+    underlord_validate_unikraft_config("${UNDERLORD_C_GUEST_CONFIG}")
+    underlord_validate_unikraft_cpp_config("${UNDERLORD_CPP_GUEST_CONFIG}")
 endif()
 
 # elfloader strips AArch64 kernel and root-task ELF files; use the matching

@@ -18,3 +18,20 @@ function(underlord_validate_unikraft_config config)
         message(FATAL_ERROR "Unikraft config ${config} must disable SMP")
     endif()
 endfunction()
+
+function(underlord_validate_unikraft_cpp_config config)
+    underlord_validate_unikraft_config("${config}")
+    file(READ "${config}" contents)
+    foreach(required
+            "CONFIG_LIBCOMPILER_RT=y"
+            "CONFIG_LIBCXX=y"
+            "CONFIG_LIBCXXABI=y"
+            "CONFIG_LIBUNWIND=y"
+            "CONFIG_LIBMUSL=y"
+            "CONFIG_FPSIMD=y")
+        string(FIND "${contents}" "${required}" found)
+        if(found EQUAL -1)
+            message(FATAL_ERROR "Unikraft C++ config ${config} must contain ${required}")
+        endif()
+    endforeach()
+endfunction()

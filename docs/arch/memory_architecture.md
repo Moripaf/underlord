@@ -33,6 +33,7 @@ RAM.  Guest RAM is never a host-physical one-to-one mapping.
 | Item | Address or slot | Owner and access |
 | --- | --- | --- |
 | Read-only manifest and ELF | VMM VA `0x7000000000` | Root owns the source frames and maps them read-only into the VMM. |
+| Root image arena | Size rounded to a power of two covering descriptor plus ELF | Root reserves one ordinary untyped before allocman bootstrap, directly retypes sequential 4 KiB frames, and retains the caps for the child mapping. |
 | VMM stack and guard | Root-selected VMM VA range | Root maps the child stack; manifest v2 records it so child VSpace bookkeeping reserves it before allocator-pool growth. |
 | Guest RAM | GPA `0x40000000` through `0x47ffffff` (128 MiB) | One 27-bit VKA untyped arena is reserved before VMM objects; the local adapter directly retypes sequential 4 KiB frames. |
 | Guest EL1 mapping | Identity over the loaded image and runtime FDT | The guest constructs its EL1 tables; stage 2 supplies the identity-addressable GPA backing. |
@@ -60,8 +61,9 @@ guest.
 
 Boot order is deliberately fixed:
 
-1. Root selects the untyped, records the child stack-and-guard range in
-   manifest version 2, and installs slots 8--10 before the child starts.
+1. Root selects separate ordinary untypeds for the VMM budget and image arena,
+   records the child stack-and-guard range in manifest version 2, and installs
+   slots 8--10 before the child starts.
 2. VMM validates the manifest and reserves inherited IPC, stack, and shared
    image mappings before reserving its virtual allocator pool.
 3. VMM initializes the truthful one-untyped `simple_t`, allocman, and VKA,

@@ -16,6 +16,8 @@ Each `vmm_instance_t` records:
 - root-held control and fault endpoints; and
 - a root-owned descriptor/ELF mapping that the child can read but cannot
   modify; and
+- a root-owned image arena whose frames are directly retyped and shared
+  read-only with the child; and
 - lifecycle state: `created`, `starting`, `running`, or `faulted`.
 
 The lifecycle transitions are implemented as pure logic in
@@ -24,9 +26,9 @@ The lifecycle transitions are implemented as pure logic in
 ## Startup and supervision
 
 1. `hypervisor_bootstrap()` initializes root allocation and VSpace services.
-2. The manager verifies the embedded `my-vmm` and `c-hello` CPIO images,
-   copies the guest ELF into zeroed root-owned pages, and maps the descriptor
-   and image read-only at VMM address `0x7000000000`.
+2. The manager resolves the selected `c-hello` or `cpp-hello` CPIO entry into
+   an immutable image view, copies it into an arena-backed root mapping, and
+   maps the descriptor and image read-only at VMM address `0x7000000000`.
 3. `sel4utils` constructs the child process from the embedded ELF.
 4. The manager allocates and copies the protocol control endpoint into the
    child, starts it, and waits for the [VMM READY contract](vmm.md#control-contract).
@@ -47,8 +49,9 @@ Manifest version 2 carries the selected ordinary untyped's exact size bits and
 physical base; the root retains its original cap. The complete slot and memory
 contract belongs to [Memory architecture](memory_architecture.md).
 
-The hypervisor validates both the VMM and fixed `c-hello` CPIO entries before
-child start. The VMM is not reported running until it sends `VMM_READY`; guest
+The hypervisor validates the VMM and both bundled guest entries before child
+start. The selected image is passed to startup explicitly, so a later input
+source can use the same interface. The VMM is not reported running until it sends `VMM_READY`; guest
 events are checked in protocol order. The precise child CSpace slot and message
 encoding belong to the [VMM contract](vmm.md).
 

@@ -9,8 +9,9 @@ encoding itself remains defined by the [VMM contract](../vmm.md).
 
 1. QEMU starts the elfloader, seL4 kernel, and the `hypervisor` root task.
 2. Root retains the initial allocation and physical-device authority. It
-   validates the embedded VMM and configured `c-hello` ELF, maps the immutable
-   descriptor and guest image read-only into the child, and creates the VMM.
+   validates the embedded VMM and selected compatible hello ELF, maps the
+   immutable descriptor and guest image read-only into the child, and creates
+   the VMM.
 3. Root gives the VMM only child CSpace slots 8--10: the badged supervisor
    endpoint, one ordinary untyped, and the GICv2 VCPU-interface frame. The
    physical PL011 frame remains in root CSpace. VMM-local allocation begins at

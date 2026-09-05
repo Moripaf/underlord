@@ -51,7 +51,7 @@ formatting. `main.c` should only wire those modules together.
 | Component | Host unit tests | seL4/QEMU component tests |
 |---|---|---|
 | `underlord-utils` | Log-level name lookup, prefix construction, truncation, and invalid levels. Extract formatting from the direct `printf` backend so it can be asserted. | Verify emitted target output has the expected `[LEVEL] module:` form. |
-| `hypervisor` | Lifecycle transition rules, guest-image metadata, and capability-manifest selection. | Root bootstrap succeeds; CPIO contains `my-vmm` and `c-hello`; child process configures; slots 8--10 contain only the event endpoint, construction untyped, and GIC frame; failure paths leave the instance non-running. |
+| `hypervisor` | Lifecycle transition rules, guest-image metadata/arena sizing, and capability-manifest selection. | Root bootstrap succeeds; CPIO contains `my-vmm`, `c-hello`, and `cpp-hello`; child process configures; root image frames and slots 8--10 obey their contracts; failure paths leave the instance non-running. |
 | `my-vmm` | Control-message encoding/decoding, guest lifecycle, shared-image descriptor, ELF admission, and resource-bootstrap rules. | Starts with the fixed manifest; reserves its IPC page while bootstrapping VSpace; allocates and frees a local endpoint; sends `VMM_READY`; fault-test build faults predictably. |
 | CPIO/ELF packaging | Archive-name and metadata validation that can be pure. | The target-side loader finds and loads the embedded VMM ELF. |
 
@@ -96,6 +96,11 @@ Required scenarios:
    clear hypervisor failure and does not start a child.
 5. **Regression smoke test:** normal `hypervisor` image emits the expected
    startup sequence and does not unexpectedly fault during a bounded run.
+
+The normal-start scenario is run twice: once with the default
+`-DUNDERLORD_GUEST=c-hello` and once with `-DUNDERLORD_GUEST=cpp-hello`.
+Both require the same captured hello, ordered lifecycle, clean PSCI stop, and
+single `UNDERLORD_PHASE2_RESULT: PASS` marker.
 
 Do not use console text as the sole proof of correctness. Logs are useful
 diagnostics, but integration pass/fail should be driven by explicit control

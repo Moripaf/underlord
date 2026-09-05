@@ -20,6 +20,7 @@
  * @param {vka_object_t} control_endpoint  Root-held endpoint copied into the child.
  * @param {vka_object_t} fault_endpoint    Root-held endpoint receiving child faults.
  * @param {vka_object_t} gic_vcpu_interface Root-held GICv2 virtual CPU interface frame.
+ * @param {vka_object_t} guest_image_arena Root-held untyped arena for immutable image pages.
  * @param {void *} guest_image Root mapping of the descriptor and guest ELF.
  * @param {size_t} guest_image_length Total bytes in @ref guest_image.
  * @param {vmm_guest_state_t} guest_state Last guest lifecycle state accepted by root.
@@ -32,6 +33,7 @@ typedef struct {
     vka_object_t control_endpoint;
     vka_object_t fault_endpoint;
     vka_object_t gic_vcpu_interface;
+    vka_object_t guest_image_arena;
     void *guest_image;
     size_t guest_image_length;
     vmm_guest_state_t guest_state;

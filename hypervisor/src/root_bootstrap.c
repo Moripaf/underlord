@@ -7,6 +7,7 @@
 
 #include "root_bootstrap.h"
 #include "vmm_resource.h"
+#include <vmm_guest_contract.h>
 
 #define ALLOCATOR_STATIC_POOL_SIZE (1024 * 1024)
 #define ALLOCATOR_VIRTUAL_POOL_SIZE (4 * 1024 * 1024)
@@ -15,21 +16,26 @@ static char allocator_mem_pool[ALLOCATOR_STATIC_POOL_SIZE];
 
 static simple_t *root_simple;
 static int reserved_untyped_index = -1;
+static int reserved_image_untyped_index = -1;
 
 static int filtered_untyped_count(void *data)
 {
     (void)data;
-    return simple_get_untyped_count(root_simple) - 1;
+    return simple_get_untyped_count(root_simple) - 2;
 }
 
 static seL4_CPtr filtered_nth_untyped(void *data, int index, size_t *size_bits,
                                       uintptr_t *paddr, bool *device)
 {
     (void)data;
-    if (index >= reserved_untyped_index) {
-        index++;
+    int current = 0;
+    int count = simple_get_untyped_count(root_simple);
+    for (int original = 0; original < count; original++) {
+        if (original == reserved_untyped_index || original == reserved_image_untyped_index) continue;
+        if (current++ == index)
+            return simple_get_nth_untyped(root_simple, original, size_bits, paddr, device);
     }
-    return simple_get_nth_untyped(root_simple, index, size_bits, paddr, device);
+    return seL4_CapNull;
 }
 
 static int select_vmm_untyped(hypervisor_context_t *context)
@@ -63,7 +69,7 @@ static int select_vmm_untyped(hypervisor_context_t *context)
     return 0;
 }
 
-int hypervisor_bootstrap(hypervisor_context_t *context)
+int hypervisor_bootstrap(hypervisor_context_t *context, const vmm_guest_image_t *guest_image)
 {
     seL4_BootInfo *bootinfo = platsupport_get_bootinfo();
     if (bootinfo == NULL) {
@@ -72,8 +78,36 @@ int hypervisor_bootstrap(hypervisor_context_t *context)
     }
 
     simple_default_init_bootinfo(&context->simple, bootinfo);
-    if (select_vmm_untyped(context) != 0) {
+    if (!vmm_guest_image_valid(guest_image) ||
+        vmm_guest_image_arena_size_bits(guest_image->size + VMM_SHARED_IMAGE_OFFSET) == 0 ||
+        select_vmm_untyped(context) != 0) {
         return -1;
+    }
+    {
+        int count = simple_get_untyped_count(&context->simple);
+        vmm_untyped_candidate_t candidates[CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS];
+        size_t image_bits = vmm_guest_image_arena_size_bits(guest_image->size + VMM_SHARED_IMAGE_OFFSET);
+        if (count < 0 || count > CONFIG_MAX_NUM_BOOTINFO_UNTYPED_CAPS) return -1;
+        for (int index = 0; index < count; index++) {
+            size_t bits;
+            uintptr_t paddr;
+            bool device;
+            seL4_CPtr cap = simple_get_nth_untyped(&context->simple, index, &bits, &paddr, &device);
+            candidates[index] = (vmm_untyped_candidate_t){.size_bits = bits,
+                                                           .device = device || cap == seL4_CapNull ||
+                                                                     index == reserved_untyped_index};
+        }
+        reserved_image_untyped_index = vmm_select_untyped(candidates, (size_t)count, image_bits);
+        if (reserved_image_untyped_index < 0) {
+            underlord_hlog_error("guest image requires a %lu-bit ordinary untyped",
+                                 (unsigned long)image_bits);
+            return -1;
+        }
+        context->guest_image_arena = (vka_object_t){
+            .cptr = simple_get_nth_untyped(&context->simple, reserved_image_untyped_index,
+                                           NULL, NULL, NULL),
+            .type = seL4_UntypedObject,
+            .size_bits = image_bits};
     }
     root_simple = &context->simple;
     simple_t filtered_simple = context->simple;

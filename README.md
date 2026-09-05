@@ -34,6 +34,9 @@ ninja
 ./simulate
 ```
 
+Both `c-hello` and `cpp-hello` are bundled. The default is `c-hello`; select
+the C++ guest at configure time with `-DUNDERLORD_GUEST=cpp-hello`.
+
 `build/simulate` is the normal runnable development artifact.
 
 ## Tests

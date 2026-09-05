@@ -5,6 +5,7 @@
 #include <sel4utils/process.h>
 #include <underlord/hlog.h>
 #include <vka/object.h>
+#include <vka/capops.h>
 
 #include "vmm_manager.h"
 #include <vmm_protocol_core.h>
@@ -14,6 +15,18 @@
 
 extern char _cpio_archive[];
 extern char _cpio_archive_end[];
+
+int vmm_guest_image_from_cpio(const char *name, vmm_guest_image_t *image) {
+  unsigned long size = 0;
+  const unsigned long archive_size = _cpio_archive_end - _cpio_archive;
+  const void *bytes;
+  if (image == NULL || !vmm_guest_image_metadata_valid(name, 1)) return -1;
+  bytes = cpio_get_file(_cpio_archive, archive_size, name, &size);
+  if (bytes == NULL || !vmm_guest_image_valid(&(vmm_guest_image_t){name, bytes, (size_t)size}))
+    return -1;
+  *image = (vmm_guest_image_t){name, bytes, (size_t)size};
+  return 0;
+}
 
 static int verify_vmm_image(void) {
   unsigned long size = 0;
@@ -27,46 +40,35 @@ static int verify_vmm_image(void) {
   return 0;
 }
 
-static int verify_guest_image(void) {
-  unsigned long size = 0;
-  const unsigned long archive_size = _cpio_archive_end - _cpio_archive;
-  if (cpio_get_file(_cpio_archive, archive_size, VMM_GUEST_IMAGE_NAME, &size) == NULL ||
-      !vmm_guest_image_metadata_valid(VMM_GUEST_IMAGE_NAME, (size_t)size)) {
-    underlord_hlog_error("guest image '%s' missing or invalid", VMM_GUEST_IMAGE_NAME);
-    return -1;
-  }
-  return 0;
-}
-
-static int map_guest_image(hypervisor_context_t *context, vmm_instance_t *instance)
+static int map_guest_image(hypervisor_context_t *context, vmm_instance_t *instance,
+                           const vmm_guest_image_t *image)
 {
-  const unsigned long archive_size = _cpio_archive_end - _cpio_archive;
-  unsigned long image_length = 0;
-  const void *image = cpio_get_file(_cpio_archive, archive_size, VMM_GUEST_IMAGE_NAME,
-                                    &image_length);
   const size_t descriptor_page = VMM_SHARED_IMAGE_OFFSET;
-  size_t mapped_length;
+  size_t mapped_length, arena_bits;
   size_t pages;
   size_t stack_bytes;
   uintptr_t stack_base;
   uintptr_t stack_guard_base;
-  reservation_t reservation;
+  reservation_t reservation, root_reservation;
+  void *root_image;
+  vka_object_t arena;
+  seL4_CPtr frame_caps[VMM_GUEST_IMAGE_MAX_SIZE / (1U << 12) + 2U];
   vmm_shared_image_descriptor_t *descriptor;
 
-  if (image == NULL || !vmm_guest_image_metadata_valid(VMM_GUEST_IMAGE_NAME,
-                                                        (size_t)image_length) ||
-      image_length > SIZE_MAX - descriptor_page) {
+  if (!vmm_guest_image_valid(image) || image->size > SIZE_MAX - descriptor_page) {
     underlord_hlog_error("guest image mapping input is invalid");
     return -1;
   }
-  mapped_length = (size_t)image_length + descriptor_page;
+  mapped_length = image->size + descriptor_page;
   if (mapped_length > SIZE_MAX - (descriptor_page - 1U)) {
     underlord_hlog_error("guest image mapping size overflows");
     return -1;
   }
   mapped_length = (mapped_length + descriptor_page - 1U) & ~(descriptor_page - 1U);
   pages = mapped_length / descriptor_page;
-  if (pages == 0 || pages > INT_MAX) {
+  arena_bits = vmm_guest_image_arena_size_bits(mapped_length);
+  if (pages == 0 || pages > INT_MAX || arena_bits == 0 ||
+      pages > sizeof(frame_caps) / sizeof(frame_caps[0])) {
     underlord_hlog_error("guest image mapping page count is invalid");
     return -1;
   }
@@ -83,27 +85,48 @@ static int map_guest_image(hypervisor_context_t *context, vmm_instance_t *instan
   stack_base = (uintptr_t)instance->process.thread.stack_top - stack_bytes;
   stack_guard_base = stack_base - BIT(seL4_PageBits);
 
-  instance->guest_image = vspace_new_pages(&context->vspace, seL4_AllRights,
-                                            pages, seL4_PageBits);
-  if (instance->guest_image == NULL) {
+  root_reservation = vspace_reserve_range(&context->vspace, mapped_length,
+                                           seL4_AllRights, 1, &root_image);
+  arena = context->guest_image_arena;
+  if (root_reservation.res == NULL || arena.cptr == seL4_CapNull || arena.size_bits != arena_bits) {
     underlord_hlog_error("guest image root mapping allocation failed");
     return -1;
   }
-  memset(instance->guest_image, 0, mapped_length);
-  descriptor = instance->guest_image;
+  for (size_t i = 0; i < pages; i++) {
+    cspacepath_t path;
+    int cap_error = vka_cspace_alloc_path(&context->vka, &path);
+    seL4_Error retype_error = seL4_NoError;
+    if (cap_error == 0)
+      retype_error = seL4_Untyped_Retype(arena.cptr, seL4_ARCH_4KPage, 0, path.root,
+                                         path.dest, path.destDepth, path.offset, 1);
+    if (cap_error != 0 || retype_error != seL4_NoError) {
+      underlord_hlog_error("guest image frame arena allocation failed at page %lu (cap=%d, retype=%d)",
+                           (unsigned long)i, cap_error, (int)retype_error);
+      return -1;
+    }
+    frame_caps[i] = path.capPtr;
+  }
+  if (vspace_map_pages_at_vaddr(&context->vspace, frame_caps, NULL, root_image,
+                                pages, seL4_PageBits, root_reservation) != seL4_NoError) {
+    underlord_hlog_error("guest image root mapping failed");
+    return -1;
+  }
+  instance->guest_image = root_image;
+  memset(root_image, 0, mapped_length);
+  descriptor = root_image;
   *descriptor = (vmm_shared_image_descriptor_t){
       .magic = VMM_SHARED_IMAGE_MAGIC,
       .version = VMM_SHARED_IMAGE_VERSION,
       .header_size = sizeof(*descriptor),
       .image_offset = VMM_SHARED_IMAGE_OFFSET,
-      .image_length = (uint32_t)image_length,
+      .image_length = (uint32_t)image->size,
       .mapped_length = mapped_length,
       .delegated_untyped_paddr = context->vmm_untyped_paddr,
       .delegated_untyped_size_bits = (uint8_t)context->vmm_untyped_size_bits,
       .vmm_stack_guard_base = stack_guard_base,
       .vmm_stack_reserved_length = stack_bytes + BIT(seL4_PageBits),
   };
-  memcpy((char *)instance->guest_image + descriptor_page, image, (size_t)image_length);
+  memcpy((char *)root_image + descriptor_page, image->bytes, image->size);
 
   reservation = vspace_reserve_range_at(&instance->process.vspace,
                                         (void *)(uintptr_t)VMM_SHARED_IMAGE_ADDRESS,
@@ -111,19 +134,21 @@ static int map_guest_image(hypervisor_context_t *context, vmm_instance_t *instan
                                         seL4_CapRights_new(false, false, true, false), 1);
   if (reservation.res == NULL ||
       vspace_share_mem_at_vaddr(&context->vspace, &instance->process.vspace,
-                                instance->guest_image, (int)pages, seL4_PageBits,
+                                root_image, (int)pages, seL4_PageBits,
                                 (void *)(uintptr_t)VMM_SHARED_IMAGE_ADDRESS,
                                 reservation) != 0) {
     underlord_hlog_error("guest image read-only VMM mapping failed");
     return -1;
   }
   instance->guest_image_length = mapped_length;
+  instance->guest_image_arena = arena;
   return 0;
 }
 
 int vmm_instance_start(hypervisor_context_t *context,
-                       vmm_instance_t *instance) {
-  if (verify_vmm_image() != 0 || verify_guest_image() != 0) {
+                       vmm_instance_t *instance,
+                       const vmm_guest_image_t *guest_image) {
+  if (verify_vmm_image() != 0 || !vmm_guest_image_valid(guest_image)) {
     return -1;
   }
 
@@ -159,18 +184,23 @@ int vmm_instance_start(hypervisor_context_t *context,
     underlord_hlog_error("VMM instance %u untyped capability install failed", instance->id);
     goto failed;
   }
-  if (vka_alloc_frame_at(&context->vka, seL4_PageBits, 0x08040000,
-                         &instance->gic_vcpu_interface) != 0) {
+  cspacepath_t gic_path;
+  if (vka_cspace_alloc_path(&context->vka, &gic_path) != 0 ||
+      simple_get_frame_cap(&context->simple, (void *)(uintptr_t)0x08040000,
+                           seL4_PageBits, &gic_path) != seL4_NoError) {
     underlord_hlog_error("VMM instance %u GICv2 VCPU interface frame allocation failed", instance->id);
     goto failed;
   }
+  instance->gic_vcpu_interface = (vka_object_t){
+      .cptr = gic_path.capPtr, .type = seL4_ARCH_4KPage,
+      .size_bits = seL4_PageBits};
   child_slot = sel4utils_copy_cap_to_process(&instance->process, &context->vka,
                                              instance->gic_vcpu_interface.cptr);
   if (child_slot != VMM_GIC_VCPU_INTERFACE_SLOT) {
     underlord_hlog_error("VMM instance %u GICv2 VCPU interface capability install failed", instance->id);
     goto failed;
   }
-  if (map_guest_image(context, instance) != 0) {
+  if (map_guest_image(context, instance, guest_image) != 0) {
     goto failed;
   }
 
