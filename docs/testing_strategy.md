@@ -51,7 +51,7 @@ formatting. `main.c` should only wire those modules together.
 | Component | Host unit tests | seL4/QEMU component tests |
 |---|---|---|
 | `underlord-utils` | Log-level name lookup, prefix construction, truncation, and invalid levels. Extract formatting from the direct `printf` backend so it can be asserted. | Verify emitted target output has the expected `[LEVEL] module:` form. |
-| `hypervisor` | Lifecycle transition rules, guest-image metadata/arena sizing, and capability-manifest selection. | Root bootstrap succeeds; CPIO contains `my-vmm`, `c-hello`, and `cpp-hello`; child process configures; root image frames and slots 8--10 obey their contracts; failure paths leave the instance non-running. |
+| `hypervisor` | Lifecycle transition rules, guest-image metadata/arena sizing, and capability-manifest selection. | Root bootstrap succeeds; CPIO contains `my-vmm`, `c-hello`, `cpp-hello`, and `c-fs`; child process configures; root image frames and slots 8--10 obey their contracts; failure paths leave the instance non-running. |
 | `my-vmm` | Control-message encoding/decoding, guest lifecycle, shared-image descriptor, ELF admission, and resource-bootstrap rules. | Starts with the fixed manifest; reserves its IPC page while bootstrapping VSpace; allocates and frees a local endpoint; sends `VMM_READY`; fault-test build faults predictably. |
 | CPIO/ELF packaging | Archive-name and metadata validation that can be pure. | The target-side loader finds and loads the embedded VMM ELF. |
 
@@ -97,10 +97,11 @@ Required scenarios:
 5. **Regression smoke test:** normal `hypervisor` image emits the expected
    startup sequence and does not unexpectedly fault during a bounded run.
 
-The normal-start scenario is run twice: once with the default
-`-DUNDERLORD_GUEST=c-hello` and once with `-DUNDERLORD_GUEST=cpp-hello`.
-Both require the same captured hello, ordered lifecycle, clean PSCI stop, and
-single `UNDERLORD_PHASE2_RESULT: PASS` marker.
+The normal-start scenario is run for `c-hello`, `cpp-hello`, and `c-fs`.
+Each requires its configured captured payload, ordered lifecycle, clean PSCI
+stop, and one `UNDERLORD_PHASE2_RESULT: PASS` marker. The `c-fs` scenario
+requires `UNDERLORD_C_FS_FILE: PASS`, which is read from its ELF-embedded CPIO
+archive after Unikraft extracts it into RAMFS.
 
 Do not use console text as the sole proof of correctness. Logs are useful
 diagnostics, but integration pass/fail should be driven by explicit control
@@ -121,7 +122,7 @@ cd $PROJECTROOT
 cd build-tests
 ninja
 ctest --output-on-failure
-../tests/run-qemu-tests.sh ./simulate
+../tests/run-qemu-tests.sh ./simulate 'UNDERLORD_C_FS_FILE: PASS'
 ```
 
 The test wrapper must preserve the configured simulator defaults: QEMU

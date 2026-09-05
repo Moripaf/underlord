@@ -25,8 +25,8 @@ option(VMM_FAULT_TEST "Make the Phase 1 VMM deliberately fault after startup" OF
 # Build host-side tests and seL4 test targets instead of requiring bundled guest artifacts.
 option(UNDERLORD_BUILD_TESTS "Build Underlord host and seL4 test targets" OFF)
 # Select which bundled Unikraft hello guest the normal hypervisor startup launches.
-set(UNDERLORD_GUEST "c-hello" CACHE STRING "Bundled guest selected for the normal hypervisor startup")
-set_property(CACHE UNDERLORD_GUEST PROPERTY STRINGS c-hello cpp-hello)
+set(UNDERLORD_GUEST "c-fs" CACHE STRING "Bundled guest selected for the normal hypervisor startup")
+set_property(CACHE UNDERLORD_GUEST PROPERTY STRINGS c-hello cpp-hello c-fs)
 # Keep the accepted log severities available to configure-time validation.
 set(_underlord_log_levels TRACE DEBUG INFO WARN ERROR CACHE INTERNAL "Underlord log levels")
 # Select the minimum severity emitted by Underlord's structured logging macros.
@@ -40,6 +40,10 @@ set(UNDERLORD_C_GUEST_CONFIG "/var/Code/final-proj/catalog-arm/c-hello/.config" 
 set(UNDERLORD_CPP_GUEST_ELF "/var/Code/final-proj/catalog-arm/cpp-hello/workdir/build/cpp-hello_qemu-arm64" CACHE FILEPATH "AArch64 QEMU-virt Unikraft cpp-hello ELF")
 # Use the final Unikraft configuration that corresponds to the C++ hello ELF image.
 set(UNDERLORD_CPP_GUEST_CONFIG "/var/Code/final-proj/catalog-arm/cpp-hello/.config" CACHE FILEPATH "Final .config used for cpp-hello ELF")
+# Use the externally built C filesystem ELF image for packaging and ELF admission checks.
+set(UNDERLORD_C_FS_GUEST_ELF "/var/Code/final-proj/catalog-arm/c-fs/workdir/build/c-fs_qemu-arm64" CACHE FILEPATH "AArch64 QEMU-virt Unikraft c-fs ELF")
+# Use the final Unikraft configuration that embeds the c-fs CPIO root filesystem.
+set(UNDERLORD_C_FS_GUEST_CONFIG "/var/Code/final-proj/catalog-arm/c-fs/.config" CACHE FILEPATH "Final .config used for c-fs ELF")
 
 set(SIMULATION OFF CACHE BOOL "Include only simulation compatible tests")
 set(RELEASE OFF CACHE BOOL "Performance optimized build")

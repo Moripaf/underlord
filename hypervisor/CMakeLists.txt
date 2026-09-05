@@ -39,7 +39,8 @@ target_link_libraries(${PROJECT_NAME}
 include(cpio)
 configure_file(${UNDERLORD_C_GUEST_ELF} ${CMAKE_CURRENT_BINARY_DIR}/c-hello COPYONLY)
 configure_file(${UNDERLORD_CPP_GUEST_ELF} ${CMAKE_CURRENT_BINARY_DIR}/cpp-hello COPYONLY)
-MakeCPIO(archive.o "$<TARGET_FILE:my-vmm>;${CMAKE_CURRENT_BINARY_DIR}/c-hello;${CMAKE_CURRENT_BINARY_DIR}/cpp-hello")
+configure_file(${UNDERLORD_C_FS_GUEST_ELF} ${CMAKE_CURRENT_BINARY_DIR}/c-fs COPYONLY)
+MakeCPIO(archive.o "$<TARGET_FILE:my-vmm>;${CMAKE_CURRENT_BINARY_DIR}/c-hello;${CMAKE_CURRENT_BINARY_DIR}/cpp-hello;${CMAKE_CURRENT_BINARY_DIR}/c-fs")
 
 include(${SEL4_ROOT}/tools/seL4/cmake-tool/helpers/rootserver.cmake)
 DeclareRootserver(${PROJECT_NAME})

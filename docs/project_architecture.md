@@ -15,7 +15,7 @@ elfloader → seL4 kernel
         ▼
 hypervisor root task
   ├── owns initial authority and allocation
-  ├── embeds the VMM and both compatible hello ELFs in CPIO
+  ├── embeds the VMM and compatible guest ELFs in CPIO
   └── creates and supervises one child
         │
         ▼
@@ -30,7 +30,10 @@ The [hypervisor](hypervisor.md) owns root authority and VMM lifecycle. The
 [memory architecture](arch/memory_architecture.md) owns guest RAM and delegated
 capability details. The [boot sequence](arch/boot.md) owns the ordered target
 startup and terminal-shutdown flow. The [capability model](arch/capability_model.md)
-owns CSpace layout and authority delegation.
+owns CSpace layout and authority delegation. The
+[storage and filesystem architecture](arch/storage_filesystem_architecture.md)
+owns the embedded-RAMFS guest boundary and records the absent persistent-storage
+authority.
 
 ## Repository and modules
 
@@ -62,8 +65,10 @@ The project uses CMake and Ninja with the seL4 build system. Its defaults are
 AArch64 `qemu-arm-virt`, ARM hypervisor support, GICv2, 2048 MiB RAM, and a
 debug-oriented build. `my-vmm` is built first and packaged into the
 `hypervisor` rootserver through `MakeCPIO`. Normal builds require externally
-built `c-hello` and `cpp-hello` ELFs with matching `.config` sidecars;
-`UNDERLORD_GUEST` selects which bundled image starts. Underlord validates but
+built `c-hello`, `cpp-hello`, and `c-fs` ELFs with matching `.config` sidecars;
+`UNDERLORD_GUEST` selects which bundled image starts. `c-fs` embeds its CPIO
+archive in its ELF, extracts it into guest-local RAMFS at boot, and therefore
+does not add a storage device or persistence contract. Underlord validates but
 does not build or modify catalog applications. All Underlord-facing cache
 options and their defaults are declared together in `settings.cmake`; the
 top-level `CMakeLists.txt` retains only validation and build-graph logic.
@@ -76,7 +81,7 @@ only 128 MiB.
 ```sh
 cd $PROJECTROOT
 ./init-build.sh --sel4-root /path/to/sel4-checkout \
-  -DUNDERLORD_GUEST=cpp-hello
+  -DUNDERLORD_GUEST=c-fs
 cd build
 ninja
 ./simulate
@@ -86,9 +91,11 @@ ninja
 separate build mode described in [Testing Strategy](testing_strategy.md).
 
 The normal 2048 MiB QEMU artifact boots the configured guest, captures its
-hello through the trapped UART, accepts its PSCI terminal event, and emits one
-`UNDERLORD_PHASE2_RESULT: PASS` marker. The intentional post-PASS block is
-terminated by the QEMU test harness.
+configured acceptance payload through the trapped UART, accepts its PSCI
+terminal event, and emits one `UNDERLORD_PHASE2_RESULT: PASS` marker. For
+`c-fs`, the payload is `UNDERLORD_C_FS_FILE: PASS`, read from its embedded
+root filesystem. The intentional post-PASS block is terminated by the QEMU
+test harness.
 
 ## Current boundary
 

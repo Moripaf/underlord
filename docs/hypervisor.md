@@ -26,7 +26,7 @@ The lifecycle transitions are implemented as pure logic in
 ## Startup and supervision
 
 1. `hypervisor_bootstrap()` initializes root allocation and VSpace services.
-2. The manager resolves the selected `c-hello` or `cpp-hello` CPIO entry into
+2. The manager resolves the selected `c-hello`, `cpp-hello`, or `c-fs` CPIO entry into
    an immutable image view, copies it into an arena-backed root mapping, and
    maps the descriptor and image read-only at VMM address `0x7000000000`.
 3. `sel4utils` constructs the child process from the embedded ELF.
@@ -49,11 +49,13 @@ Manifest version 2 carries the selected ordinary untyped's exact size bits and
 physical base; the root retains its original cap. The complete slot and memory
 contract belongs to [Memory architecture](memory_architecture.md).
 
-The hypervisor validates the VMM and both bundled guest entries before child
+The hypervisor validates the VMM and all bundled guest entries before child
 start. The selected image is passed to startup explicitly, so a later input
-source can use the same interface. The VMM is not reported running until it sends `VMM_READY`; guest
-events are checked in protocol order. The precise child CSpace slot and message
-encoding belong to the [VMM contract](vmm.md).
+source can use the same interface. `c-fs` carries its CPIO root filesystem in
+its ELF; the hypervisor treats it as ordinary immutable guest bytes and grants
+no storage authority. The VMM is not reported running until it sends
+`VMM_READY`; guest events are checked in protocol order. The precise child
+CSpace slot and message encoding belong to the [VMM contract](vmm.md).
 
 ## Source map
 

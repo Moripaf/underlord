@@ -11,7 +11,8 @@ int vmm_image_metadata_valid(const char *name, size_t size)
 
 int vmm_guest_image_metadata_valid(const char *name, size_t size)
 {
-    return name != NULL && (strcmp(name, "c-hello") == 0 || strcmp(name, "cpp-hello") == 0) && size != 0 &&
+    return name != NULL && (strcmp(name, "c-hello") == 0 || strcmp(name, "cpp-hello") == 0 ||
+                            strcmp(name, "c-fs") == 0) && size != 0 &&
            size <= VMM_GUEST_IMAGE_MAX_SIZE;
 }
 

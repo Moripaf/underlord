@@ -3,6 +3,14 @@
 #include <vmm_guest_console.h>
 
 static const char hello[] = "Hello from Unikraft!";
+static const char c_fs[] = "UNDERLORD_C_FS_FILE: PASS";
+
+static size_t token_progress(const char *token, size_t progress,
+                             unsigned char byte)
+{
+    if (byte == (unsigned char)token[progress]) return progress + 1U;
+    return byte == (unsigned char)token[0] ? 1U : 0U;
+}
 
 void vmm_guest_console_init(vmm_guest_console_t *console)
 {
@@ -35,14 +43,12 @@ int vmm_guest_console_feed(vmm_guest_console_t *console, const char *bytes,
             continue;
         }
         console->saw_cr = 0;
-        if (!console->hello_seen) {
-            if (byte == (unsigned char)hello[console->hello_progress]) {
-                console->hello_progress++;
-                if (console->hello_progress == sizeof(hello) - 1U)
-                    console->hello_seen = 1;
-            } else {
-                console->hello_progress = byte == (unsigned char)hello[0] ? 1U : 0U;
-            }
+        if (!console->guest_started) {
+            console->hello_progress = token_progress(hello, console->hello_progress, byte);
+            console->c_fs_progress = token_progress(c_fs, console->c_fs_progress, byte);
+            if (console->hello_progress == sizeof(hello) - 1U ||
+                console->c_fs_progress == sizeof(c_fs) - 1U)
+                console->guest_started = 1;
         }
         if (console->length < VMM_GUEST_CONSOLE_LINE_MAX - 1U) {
             console->line[console->length++] = (char)byte;
@@ -54,7 +60,7 @@ int vmm_guest_console_feed(vmm_guest_console_t *console, const char *bytes,
     return 0;
 }
 
-int vmm_guest_console_hello_seen(const vmm_guest_console_t *console)
+int vmm_guest_console_start_seen(const vmm_guest_console_t *console)
 {
-    return console != NULL && console->hello_seen;
+    return console != NULL && console->guest_started;
 }

@@ -40,7 +40,7 @@ static memory_fault_result_t unexpected_mem_fault(vm_t *guest, vm_vcpu_t *vcpu,
 static void guest_line(const char *line, void *cookie) {
   vmm_vm_t *vm = cookie;
   underlord_vlog_guest_info(0, "%s", line);
-  if (vmm_guest_console_hello_seen(&vm->guest_console) && !vm->guest_hello) {
+  if (vmm_guest_console_start_seen(&vm->guest_console) && !vm->guest_hello) {
     uint32_t word;
     vm->guest_hello = 1;
     if (vmm_protocol_encode(VMM_PROTOCOL_GUEST_STARTED, &word) == 0) {

@@ -16,13 +16,20 @@ int main(void)
     vmm_guest_console_t console;
     vmm_guest_console_init(&console);
     assert(vmm_guest_console_feed(&console, "Hello from Uni", 14, capture, NULL) == 0);
-    assert(!vmm_guest_console_hello_seen(&console));
+    assert(!vmm_guest_console_start_seen(&console));
     assert(vmm_guest_console_feed(&console, "kraft!\r\n", 8, capture, NULL) == 0);
-    assert(vmm_guest_console_hello_seen(&console));
+    assert(vmm_guest_console_start_seen(&console));
     assert(strcmp(output, "") == 0);
     assert(vmm_guest_console_feed(&console, "x\ny\r", 4, capture, NULL) == 0);
     assert(strcmp(output, "y") == 0);
     assert(vmm_guest_console_feed(&console, "%s\n", 3, capture, NULL) == 0);
     assert(strcmp(output, "%s") == 0);
+    vmm_guest_console_init(&console);
+    assert(vmm_guest_console_feed(&console, "UNDERLORD_C_FS_",
+                                  strlen("UNDERLORD_C_FS_"), capture, NULL) == 0);
+    assert(!vmm_guest_console_start_seen(&console));
+    assert(vmm_guest_console_feed(&console, "FILE: PASS\r\n",
+                                  strlen("FILE: PASS\r\n"), capture, NULL) == 0);
+    assert(vmm_guest_console_start_seen(&console));
     return 0;
 }

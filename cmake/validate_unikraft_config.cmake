@@ -35,3 +35,20 @@ function(underlord_validate_unikraft_cpp_config config)
         endif()
     endforeach()
 endfunction()
+
+function(underlord_validate_unikraft_c_fs_config config)
+    underlord_validate_unikraft_config("${config}")
+    file(READ "${config}" contents)
+    foreach(required
+            "CONFIG_LIBVFSCORE=y"
+            "CONFIG_LIBVFSCORE_AUTOMOUNT_CI=y"
+            "CONFIG_LIBVFSCORE_AUTOMOUNT_CI_EINITRD=y"
+            "CONFIG_LIBVFSCORE_AUTOMOUNT_EINITRD=y"
+            "CONFIG_LIBRAMFS=y"
+            "CONFIG_LIBUKCPIO=y")
+        string(FIND "${contents}" "${required}" found)
+        if(found EQUAL -1)
+            message(FATAL_ERROR "Unikraft c-fs config ${config} must contain ${required}")
+        endif()
+    endforeach()
+endfunction()

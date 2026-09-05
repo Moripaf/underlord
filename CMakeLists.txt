@@ -8,15 +8,15 @@ endif()
 
 project(Underlord)
 
-if(NOT UNDERLORD_GUEST STREQUAL "c-hello" AND NOT UNDERLORD_GUEST STREQUAL "cpp-hello")
-    message(FATAL_ERROR "UNDERLORD_GUEST must be c-hello or cpp-hello")
+if(NOT UNDERLORD_GUEST STREQUAL "c-hello" AND NOT UNDERLORD_GUEST STREQUAL "cpp-hello" AND NOT UNDERLORD_GUEST STREQUAL "c-fs")
+    message(FATAL_ERROR "UNDERLORD_GUEST must be c-hello, cpp-hello, or c-fs")
 endif()
 if(NOT UNDERLORD_LOG_LEVEL IN_LIST _underlord_log_levels)
     message(FATAL_ERROR "UNDERLORD_LOG_LEVEL must be one of: TRACE, DEBUG, INFO, WARN, ERROR")
 endif()
 
 if(NOT UNDERLORD_BUILD_TESTS)
-    foreach(guest c cpp)
+    foreach(guest c cpp c_fs)
         string(TOUPPER "${guest}" guest_upper)
         if(NOT EXISTS "${UNDERLORD_${guest_upper}_GUEST_ELF}" OR NOT EXISTS "${UNDERLORD_${guest_upper}_GUEST_CONFIG}")
             message(FATAL_ERROR "Phase 2 requires both guest ELF and .config files")
@@ -25,6 +25,7 @@ if(NOT UNDERLORD_BUILD_TESTS)
     include(${CMAKE_SOURCE_DIR}/cmake/validate_unikraft_config.cmake)
     underlord_validate_unikraft_config("${UNDERLORD_C_GUEST_CONFIG}")
     underlord_validate_unikraft_cpp_config("${UNDERLORD_CPP_GUEST_CONFIG}")
+    underlord_validate_unikraft_c_fs_config("${UNDERLORD_C_FS_GUEST_CONFIG}")
 endif()
 
 # elfloader strips AArch64 kernel and root-task ELF files; use the matching

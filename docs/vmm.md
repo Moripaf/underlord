@@ -28,9 +28,11 @@ root task; their frame capabilities are retained in root CSpace. After READY, VM
 
 Pure admission now handles `SHT_NOBITS`, rejects overflow-safe invalid ranges,
 and validates Unikraft `.uk_bootinfo` magic, version, and nonzero region count.
-The normal AArch64 QEMU run boots the configured guest, captures
-`Hello from Unikraft!`, accepts its PSCI `SYSTEM_OFF`, and produces the
-protocol-derived PASS marker.  On that accepted terminal SMC, the VMM first
+The normal AArch64 QEMU run boots the configured guest, captures its configured
+acceptance payload, accepts its PSCI `SYSTEM_OFF`, and produces the
+protocol-derived PASS marker. For `c-fs`, that payload is
+`UNDERLORD_C_FS_FILE: PASS` from its ELF-embedded RAMFS; it requires no new
+VMM device or capability. On that accepted terminal SMC, the VMM first
 suspends the vCPU, sends `GUEST_STOPPED`, and blocks on its local VM endpoint;
 it does not return through libsel4vm's fault-reply path or from `main`.
 

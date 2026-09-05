@@ -9,7 +9,7 @@ encoding itself remains defined by the [VMM contract](../vmm.md).
 
 1. QEMU starts the elfloader, seL4 kernel, and the `hypervisor` root task.
 2. Root retains the initial allocation and physical-device authority. It
-   validates the embedded VMM and selected compatible hello ELF, maps the
+   validates the embedded VMM and selected compatible guest ELF, maps the
    immutable descriptor and guest image read-only into the child, and creates
    the VMM.
 3. Root gives the VMM only child CSpace slots 8--10: the badged supervisor
@@ -34,13 +34,15 @@ encoding itself remains defined by the [VMM contract](../vmm.md).
    on the VMM-local host endpoint for guest exits.
 9. PL011 data-register writes are line-buffered and logged as
    `[INFO] vmm[0]-guest: ...`. Once the exact stream token
-   `Hello from Unikraft!` is seen, the VMM emits `GUEST_STARTED`.
+   `Hello from Unikraft!` or `UNDERLORD_C_FS_FILE: PASS` is seen, the VMM
+   emits `GUEST_STARTED`.
 
 ## Terminal shutdown sequence
 
-1. The guest invokes PSCI `SYSTEM_OFF` by SMC after printing the exact hello.
-2. The VMM rejects `SYSTEM_OFF` before the hello as a terminal failure. After
-   the hello, it suspends the vCPU, marks the terminal state, and sends
+1. The guest invokes PSCI `SYSTEM_OFF` by SMC after printing an approved
+   guest-start token.
+2. The VMM rejects `SYSTEM_OFF` before an approved token as a terminal
+   failure. After the token, it suspends the vCPU, marks the terminal state, and sends
    `GUEST_STOPPED` to root.
 3. The VMM then blocks on its local host endpoint. It deliberately does not
    return through libsel4vm's SMC fault-reply path, and it never returns from
@@ -52,5 +54,5 @@ encoding itself remains defined by the [VMM contract](../vmm.md).
 The final blocking state is intentional. The test harness recognizes the one
 PASS marker and terminates QEMU; neither the VMM nor root task exits into a C
 runtime continuation. Any malformed IPC, unexpected guest exit, unsupported
-MMIO access, failed construction, timeout, or terminal event before hello is a
-failure and must not produce PASS.
+MMIO access, failed construction, timeout, or terminal event before a
+guest-start token is a failure and must not produce PASS.
