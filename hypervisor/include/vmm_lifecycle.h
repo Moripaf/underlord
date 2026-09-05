@@ -7,12 +7,13 @@
 
 /***
  * @enum vmm_lifecycle_state_t
- * States visible to the manager; faulted is terminal in Phase 1.
+ * States visible to the manager; stopped and faulted are terminal.
  */
 typedef enum {
     VMM_CREATED,
     VMM_STARTING,
     VMM_RUNNING,
+    VMM_STOPPED,
     VMM_FAULTED,
 } vmm_lifecycle_state_t;
 
@@ -23,6 +24,7 @@ typedef enum {
 typedef enum {
     VMM_EVENT_START,
     VMM_EVENT_READY,
+    VMM_EVENT_STOP,
     VMM_EVENT_FAILURE,
     VMM_EVENT_FAULT,
 } vmm_lifecycle_event_t;

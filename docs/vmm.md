@@ -24,6 +24,15 @@ descriptor and `c-hello` bytes are mapped read-only by the root task; their
 frame capabilities are retained in root CSpace. After READY, VMM emits
 `GUEST_LOADING` only after admitting this immutable input.
 
+## Verified implementation boundary (2026-09-04)
+
+Pure admission now handles `SHT_NOBITS`, rejects overflow-safe invalid ranges,
+and validates Unikraft `.uk_bootinfo` magic, version, and nonzero region count.
+The configured guest passes the focused host regressions. The target probe
+loaded the FDT and ELF and prepared guest context, but `vcpu_start()` did not
+return during bounded QEMU execution. No guest hello, PSCI shutdown, or PASS
+result was observed; Phase 2 remains incomplete.
+
 ## Control contract
 
 `vmm_protocol.h` binds the control endpoint to

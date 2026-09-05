@@ -6,6 +6,7 @@
 #include "vmm_guest_contract.h"
 #include "vmm_resources.h"
 #include "vmm_vm.h"
+#include "vmm_guest_boot.h"
 
 int main(void)
 {
@@ -37,19 +38,31 @@ int main(void)
     }
     seL4_SetMR(0, ready_word);
     seL4_Send(VMM_CONTROL_ENDPOINT_SLOT, seL4_MessageInfo_new(0, 0, 0, 1));
+
     if (vmm_guest_transition(&guest_state, VMM_GUEST_EVENT_LOAD) != 0 ||
-        vmm_protocol_encode(VMM_PROTOCOL_GUEST_LOADING, &ready_word) != 0) {
-        return -1;
-    }
+        vmm_protocol_encode(VMM_PROTOCOL_GUEST_LOADING, &ready_word) != 0) return -1;
     seL4_SetMR(0, ready_word);
     seL4_Send(VMM_CONTROL_ENDPOINT_SLOT, seL4_MessageInfo_new(0, 0, 0, 1));
 
+    const void *guest_image = (const void *)(uintptr_t)(VMM_SHARED_IMAGE_ADDRESS + manifest->image_offset);
+    uint64_t entry;
+    if (vmm_guest_boot_load(&vm, guest_image, manifest->image_length, &entry) != 0 ||
+        vmm_guest_transition(&guest_state, VMM_GUEST_EVENT_BOOT) != 0) {
+        underlord_vlog_error(0, "guest loading failed");
+        return -1;
+    }
+    if (vmm_protocol_encode(VMM_PROTOCOL_GUEST_BOOTING, &ready_word) != 0) return -1;
+    seL4_SetMR(0, ready_word);
+    seL4_Send(VMM_CONTROL_ENDPOINT_SLOT, seL4_MessageInfo_new(0, 0, 0, 1));
+    if (vmm_guest_boot_start(&vm, entry) != 0) {
+        underlord_vlog_error(0, "guest vCPU startup failed");
+        return -1;
+    }
 #if VMM_FAULT_TEST
     underlord_vlog_warn(0, "fault test requested");
     *(volatile seL4_Word *)0 = 0;
 #endif
 
-    /* The hypervisor supplies this endpoint in a fixed manifest slot. */
-    seL4_Wait(VMM_CONTROL_ENDPOINT_SLOT, NULL);
-    return 0;
+    /* vm_run owns the VMM-local endpoint and handles every guest exit. */
+    return vm_run(&vm.vm);
 }

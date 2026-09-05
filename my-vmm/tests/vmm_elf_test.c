@@ -40,7 +40,7 @@ int main(void)
     put16(image, 54, 56);
     put16(image, 56, 1);
     put16(image, 58, 64);
-    put16(image, 60, 2);
+    put16(image, 60, 3);
     put16(image, 62, 1);
     put32(image, 64, 1);
     put32(image, 68, 5);
@@ -52,7 +52,16 @@ int main(void)
     put32(image, 576, 1);
     put64(image, 600, 768);
     put64(image, 608, 14);
-    memcpy(image + 768, "\0.uk_bootinfo\0", 14);
+    put32(image, 900, 0);
+    memcpy(image + 901, ".uk_bootinfo", 12);
+    put64(image, 576 + 24, 900);
+    put64(image, 576 + 32, 14);
+    put32(image, 768, 0xb007b0b0U);
+    image[772] = 1;
+    put32(image, 844, 1);
+    put32(image, 640, 1);
+    put64(image, 640 + 24, 768);
+    put64(image, 640 + 32, 80);
 
     assert(vmm_elf_validate(image, sizeof(image), &plan) == 0);
     assert(plan.entry == VMM_GUEST_RAM_BASE + VMM_GUEST_DTB_SIZE);
@@ -60,6 +69,14 @@ int main(void)
     assert(plan.loads[0].file_offset == 256);
     assert(plan.loads[0].file_size == 4);
     assert(plan.loads[0].memory_size == 8);
+    /* NOBITS has no file range and must still be admissible. */
+    put32(image, 512 + 4, 8);
+    put64(image, 512 + 32, 16);
+    assert(vmm_elf_validate(image, sizeof(image), &plan) == 0);
+    /* A segment above RAM must be rejected without unsigned underflow. */
+    put64(image, 80, UINT64_C(0x500000000));
+    assert(vmm_elf_validate(image, sizeof(image), &plan) == -1);
+    put64(image, 80, VMM_GUEST_RAM_BASE + VMM_GUEST_DTB_SIZE);
     image[18] = 0;
     assert(vmm_elf_validate(image, sizeof(image), &plan) == -1);
     return 0;

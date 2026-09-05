@@ -1,5 +1,6 @@
 #include <cpio/cpio.h>
 #include <string.h>
+#include <stdio.h>
 #include <sel4/sel4.h>
 #include <sel4utils/process.h>
 #include <underlord/hlog.h>
@@ -169,17 +170,6 @@ int vmm_instance_start(hypervisor_context_t *context,
     underlord_hlog_error("VMM instance %u GICv2 VCPU interface capability install failed", instance->id);
     goto failed;
   }
-  if (vka_alloc_frame_at(&context->vka, seL4_PageBits, 0x09000000,
-                         &instance->pl011_frame) != 0) {
-    underlord_hlog_error("VMM instance %u PL011 frame allocation failed", instance->id);
-    goto failed;
-  }
-  child_slot = sel4utils_copy_cap_to_process(&instance->process, &context->vka,
-                                             instance->pl011_frame.cptr);
-  if (child_slot != VMM_PL011_FRAME_SLOT) {
-    underlord_hlog_error("VMM instance %u PL011 capability install failed", instance->id);
-    goto failed;
-  }
   if (map_guest_image(context, instance) != 0) {
     goto failed;
   }
@@ -195,7 +185,9 @@ int vmm_instance_start(hypervisor_context_t *context,
     seL4_Word badge = 0;
 
     seL4_MessageInfo_t info = seL4_Recv(instance->control_endpoint.cptr, &badge);
-    if (badge != VMM_SUPERVISOR_EVENT_BADGE || vmm_protocol_decode((uint32_t)seL4_GetMR(0), &message) != 0 ||
+    if (badge != VMM_SUPERVISOR_EVENT_BADGE || seL4_MessageInfo_get_label(info) != 0 ||
+        seL4_MessageInfo_get_length(info) != 1 ||
+        vmm_protocol_decode((uint32_t)seL4_GetMR(0), &message) != 0 ||
         message != VMM_PROTOCOL_READY ||
         vmm_lifecycle_transition(&instance->state, VMM_EVENT_READY) != 0) {
       underlord_hlog_error("VMM instance %u sent an invalid startup message (badge=%lu label=%lu length=%lu mr0=%lu)",
@@ -217,15 +209,27 @@ failed:
 void vmm_instance_supervise(vmm_instance_t *instance) {
   seL4_Word badge = 0;
   for (;;) {
-    seL4_Wait(instance->fault_endpoint.cptr, &badge);
+    seL4_MessageInfo_t info = seL4_Recv(instance->fault_endpoint.cptr, &badge);
     if (badge == VMM_SUPERVISOR_EVENT_BADGE) {
       vmm_protocol_message_t message;
-      if (vmm_protocol_decode((uint32_t)seL4_GetMR(0), &message) == 0 &&
-          message == VMM_PROTOCOL_GUEST_LOADING &&
+      if (seL4_MessageInfo_get_label(info) != 0 || seL4_MessageInfo_get_length(info) != 1 ||
+          vmm_protocol_decode((uint32_t)seL4_GetMR(0), &message) != 0) goto invalid_event;
+      if (message == VMM_PROTOCOL_GUEST_LOADING &&
           vmm_guest_transition(&instance->guest_state, VMM_GUEST_EVENT_LOAD) == 0) {
         underlord_hlog_info("VMM instance %u accepted guest image", instance->id);
         continue;
       }
+      if (message == VMM_PROTOCOL_GUEST_BOOTING &&
+          vmm_guest_transition(&instance->guest_state, VMM_GUEST_EVENT_BOOT) == 0) continue;
+      if (message == VMM_PROTOCOL_GUEST_STARTED &&
+          vmm_guest_transition(&instance->guest_state, VMM_GUEST_EVENT_START) == 0) continue;
+      if (message == VMM_PROTOCOL_GUEST_STOPPED &&
+          vmm_guest_transition(&instance->guest_state, VMM_GUEST_EVENT_STOP) == 0 &&
+          vmm_lifecycle_transition(&instance->state, VMM_EVENT_STOP) == 0) {
+        printf("UNDERLORD_PHASE2_RESULT: PASS\n");
+        return;
+      }
+invalid_event:
       (void)vmm_lifecycle_transition(&instance->state, VMM_EVENT_FAILURE);
       underlord_hlog_error("VMM instance %u sent an invalid guest event", instance->id);
       continue;

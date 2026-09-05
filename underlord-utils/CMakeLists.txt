@@ -11,4 +11,7 @@ target_include_directories(underlord-utils
     PUBLIC include
     PRIVATE hypervisor-include
 )
+target_compile_definitions(underlord-utils PRIVATE
+    UNDERLORD_LOG_LEVEL=UNDERLORD_LOG_${UNDERLORD_LOG_LEVEL}
+)
 target_link_libraries(underlord-utils PRIVATE muslc)

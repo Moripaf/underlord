@@ -53,6 +53,15 @@ void underlord_vlog_debug(unsigned int instance_id, const char *format, ...)
  */
 void underlord_vlog_info(unsigned int instance_id, const char *format, ...)
     __attribute__((format(printf, 2, 3)));
+/*** @function underlord_vlog_guest_info(instance_id, format, ...)
+ * Emit an INFO record for captured guest output.
+ * @param {unsigned int} instance_id VMM identity.
+ * @param {const char *} format Non-NULL printf-style format.
+ * @return None.
+ * @sideeffect Emits a `vmm[id]-guest` record.
+ */
+void underlord_vlog_guest_info(unsigned int instance_id, const char *format, ...)
+    __attribute__((format(printf, 2, 3)));
 /***
  * @function underlord_vlog_warn(instance_id, format, ...)
  * Emit a WARN VMM record.

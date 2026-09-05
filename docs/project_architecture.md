@@ -50,6 +50,9 @@ with `SEL4_ROOT`.
 backend. It exposes VMM logging through `underlord/vlog.h` and keeps
 `underlord/hlog.h` private to the hypervisor. Records use
 `[LEVEL] module: message` and are printed with a terminating newline.
+The minimum emitted level is selected at configure time with
+`UNDERLORD_LOG_LEVEL` (default `INFO`); lower-level utility functions compile
+to no-ops.
 
 ## Build and feedback loop
 
@@ -77,6 +80,11 @@ ninja
 
 `build/simulate` is the final runnable development artifact. Testing has a
 separate build mode described in [Testing Strategy](testing_strategy.md).
+
+The 2026-09-04 normal artifact built and reached READY, GUEST_LOADING, FDT
+loading, ELF loading, and guest-context preparation with 2048 MiB host RAM.
+It then timed out in the vCPU-start path without guest hello or
+`UNDERLORD_PHASE2_RESULT: PASS`.
 
 ## Current boundary
 

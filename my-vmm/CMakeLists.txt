@@ -16,6 +16,8 @@ add_executable(${PROJECT_NAME}
     src/vmm_elf.c
     src/vmm_resources.c
     src/vmm_guest_ram_state.c
+    src/vmm_guest_console.c
+    src/vmm_guest_boot.c
     src/vmm_guest_ram.c
     src/vmm_vm.c
 )

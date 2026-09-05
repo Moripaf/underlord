@@ -13,6 +13,8 @@
 #define ELF_ET_EXEC 2U
 #define ELF_EM_AARCH64 183U
 #define ELF_PF_X 1U
+#define UKPLAT_BOOTINFO_MAGIC 0xb007b0b0U
+#define UKPLAT_BOOTINFO_VERSION 1U
 
 static uint16_t le16(const unsigned char *p) { return (uint16_t)p[0] | ((uint16_t)p[1] << 8); }
 static uint32_t le32(const unsigned char *p) { return (uint32_t)le16(p) | ((uint32_t)le16(p + 2) << 16); }
@@ -29,6 +31,23 @@ static bool section_name_is(const unsigned char *names, uint64_t names_size,
     size_t expected_length = strlen(expected);
     return offset < names_size && expected_length < names_size - offset &&
            memcmp(names + offset, expected, expected_length + 1) == 0;
+}
+
+static bool add_overflow_u64(uint64_t a, uint64_t b, uint64_t *result)
+{
+    if (b > UINT64_MAX - a) return true;
+    *result = a + b;
+    return false;
+}
+
+static bool bootinfo_valid(const unsigned char *bytes, uint64_t offset,
+                           uint64_t size, size_t image_size)
+{
+    /* ukplat_bootinfo is 80 bytes; mrds.count is the first u32 at offset 76. */
+    if (size < 80 || !range_valid(offset, size, image_size)) return false;
+    const unsigned char *bi = bytes + offset;
+    return le32(bi) == UKPLAT_BOOTINFO_MAGIC && bi[4] == UKPLAT_BOOTINFO_VERSION &&
+           le32(bi + 76) != 0;
 }
 
 int vmm_elf_validate(const void *image, size_t image_size, vmm_elf_plan_t *plan)
@@ -57,20 +76,21 @@ int vmm_elf_validate(const void *image, size_t image_size, vmm_elf_plan_t *plan)
     for (uint16_t i = 0; i < phnum; i++) {
         const unsigned char *ph = bytes + phoff + (size_t)i * phentsize;
         uint64_t offset = le64(ph + 8), vaddr = le64(ph + 16), paddr = le64(ph + 24);
-        uint64_t filesz = le64(ph + 32), memsz = le64(ph + 40), end;
+        uint64_t filesz = le64(ph + 32), memsz = le64(ph + 40), end, ram_end;
         if (le32(ph) != ELF_PT_LOAD) continue;
         if (loads == VMM_ELF_MAX_LOAD_SEGMENTS) return -1;
         if (filesz > memsz || !range_valid(offset, filesz, image_size) || paddr != vaddr ||
-            vaddr < VMM_GUEST_RAM_BASE || memsz > VMM_GUEST_RAM_BASE + VMM_GUEST_RAM_SIZE - vaddr ||
-            vaddr < VMM_GUEST_RAM_BASE + VMM_GUEST_DTB_SIZE) return -1;
-        end = vaddr + memsz;
-        if (end < vaddr) return -1;
+            vaddr < VMM_GUEST_RAM_BASE + VMM_GUEST_DTB_SIZE ||
+            add_overflow_u64(VMM_GUEST_RAM_BASE, VMM_GUEST_RAM_SIZE, &ram_end) ||
+            add_overflow_u64(vaddr, memsz, &end) || end > ram_end) return -1;
         for (uint16_t j = 0; j < i; j++) {
             const unsigned char *other = bytes + phoff + (size_t)j * phentsize;
             uint64_t other_addr, other_size;
             if (le32(other) != ELF_PT_LOAD) continue;
             other_addr = le64(other + 24); other_size = le64(other + 40);
-            if (other_size != 0 && vaddr < other_addr + other_size && other_addr < end) return -1;
+            uint64_t other_end;
+            if (other_size != 0 && !add_overflow_u64(other_addr, other_size, &other_end) &&
+                vaddr < other_end && other_addr < end) return -1;
         }
         if ((le32(ph + 4) & ELF_PF_X) != 0 && entry >= vaddr && entry < end) entry_found = true;
         if (memsz != 0) {
@@ -95,9 +115,11 @@ int vmm_elf_validate(const void *image, size_t image_size, vmm_elf_plan_t *plan)
             const unsigned char *section = bytes + shoff + (size_t)i * shentsize;
             uint32_t name_offset = le32(section);
             uint64_t section_offset = le64(section + 24), section_size = le64(section + 32);
-            if (name_offset >= names_size || !range_valid(section_offset, section_size, image_size)) return -1;
+            uint32_t section_type = le32(section + 4);
+            if (name_offset >= names_size ||
+                (section_type != 8 && !range_valid(section_offset, section_size, image_size))) return -1;
             if (section_name_is(bytes + names_offset, names_size, name_offset, ".uk_bootinfo") &&
-                section_size != 0) bootinfo_found = true;
+                bootinfo_valid(bytes, section_offset, section_size, image_size)) bootinfo_found = true;
         }
         if (!bootinfo_found) return -1;
     }

@@ -21,6 +21,10 @@ Do not make host tests the acceptance criterion for kernel-facing code. The
 acceptance suite must build the actual `qemu-arm-virt`/AArch64 configuration and
 run it with `build/simulate`.
 
+The 2026-09-04 run is incomplete acceptance evidence: host ELF regressions and
+the cross-build passed, but QEMU timed out after guest-context preparation in
+`vcpu_start()`. A timeout or missing hello/PASS marker is a failure.
+
 ## Test layout
 
 ```

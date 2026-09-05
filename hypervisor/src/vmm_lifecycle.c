@@ -16,6 +16,10 @@ int vmm_lifecycle_transition(vmm_lifecycle_state_t *state,
         *state = VMM_RUNNING;
         return 0;
     }
+    if (*state == VMM_RUNNING && event == VMM_EVENT_STOP) {
+        *state = VMM_STOPPED;
+        return 0;
+    }
     if ((*state == VMM_STARTING || *state == VMM_RUNNING) &&
         (event == VMM_EVENT_FAILURE || event == VMM_EVENT_FAULT)) {
         *state = VMM_FAULTED;

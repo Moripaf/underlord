@@ -4,6 +4,10 @@
 #include <underlord/hlog.h>
 #include <underlord/log_format.h>
 
+#ifndef UNDERLORD_LOG_LEVEL
+#define UNDERLORD_LOG_LEVEL UNDERLORD_LOG_INFO
+#endif
+
 static void log_message(const char *module, underlord_log_level_t level,
                         const char *format, va_list args)
 {
@@ -30,22 +34,34 @@ static void vlog_at_level(unsigned int instance_id, underlord_log_level_t level,
     log_message(module, level, format, args);
 }
 
+static void guest_log_at_level(unsigned int instance_id, underlord_log_level_t level,
+                               const char *format, va_list args)
+{
+    char module[32];
+    snprintf(module, sizeof(module), "vmm[%u]-guest", instance_id);
+    log_message(module, level, format, args);
+}
+
 #define DEFINE_HLOG_HELPER(name, level)                                        \
     void underlord_hlog_##name(const char *format, ...)                         \
     {                                                                            \
-        va_list args;                                                            \
-        va_start(args, format);                                                  \
-        hlog_at_level(level, format, args);                                      \
-        va_end(args);                                                            \
+        if (UNDERLORD_LOG_LEVEL <= (level)) {                                    \
+            va_list args;                                                        \
+            va_start(args, format);                                              \
+            hlog_at_level(level, format, args);                                  \
+            va_end(args);                                                        \
+        }                                                                        \
     }
 
 #define DEFINE_VLOG_HELPER(name, level)                                        \
     void underlord_vlog_##name(unsigned int instance_id, const char *format, ...) \
     {                                                                            \
-        va_list args;                                                            \
-        va_start(args, format);                                                  \
-        vlog_at_level(instance_id, level, format, args);                         \
-        va_end(args);                                                            \
+        if (UNDERLORD_LOG_LEVEL <= (level)) {                                    \
+            va_list args;                                                        \
+            va_start(args, format);                                              \
+            vlog_at_level(instance_id, level, format, args);                     \
+            va_end(args);                                                        \
+        }                                                                        \
     }
 
 DEFINE_HLOG_HELPER(trace, UNDERLORD_LOG_TRACE)
@@ -59,3 +75,13 @@ DEFINE_VLOG_HELPER(debug, UNDERLORD_LOG_DEBUG)
 DEFINE_VLOG_HELPER(info, UNDERLORD_LOG_INFO)
 DEFINE_VLOG_HELPER(warn, UNDERLORD_LOG_WARN)
 DEFINE_VLOG_HELPER(error, UNDERLORD_LOG_ERROR)
+
+void underlord_vlog_guest_info(unsigned int instance_id, const char *format, ...)
+{
+    if (UNDERLORD_LOG_LEVEL <= UNDERLORD_LOG_INFO) {
+        va_list args;
+        va_start(args, format);
+        guest_log_at_level(instance_id, UNDERLORD_LOG_INFO, format, args);
+        va_end(args);
+    }
+}

@@ -108,9 +108,16 @@ only `READY -> LOADING -> BOOTING -> STARTED -> STOPPED`; it emits exactly one
 `UNDERLORD_PHASE2_RESULT: PASS` only after the clean terminal stop.  A fault,
 invalid event, or `GUEST_FAILED` produces no PASS result.
 
+On 2026-09-04, target execution confirmed arena registration, FDT/ELF memory
+touches, and guest-context preparation only. The checked-in ARM libsel4vm
+`vcpu_start()` call did not return control to the VMM child before the bounded
+`build/simulate` run expired, so vCPU, hello, PSCI, and PASS guarantees remain
+unverified requirements.
+
 ## Explicit exclusions
 
 This design does not add physical one-to-one normal RAM, virtio, SMP, extra
 guests, restart or reclamation, arbitrary device passthrough, a guest memory
-request protocol, or a management API.  PL011 is the only guest device-frame
-delegation required for the hello-world guest.
+request protocol, or a management API. The physical PL011 frame remains
+root-owned and is not delegated; GPA 0x09000000--0x09000fff is reserved for a
+trapped, emulated PL011.
