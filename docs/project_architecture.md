@@ -27,8 +27,10 @@ my-vmm child task
 
 The [hypervisor](hypervisor.md) owns root authority and VMM lifecycle. The
 [VMM](vmm.md) defines the child-side capability and control protocol. The
-[memory architecture](memory_architecture.md) owns guest RAM and delegated
-capability details.
+[memory architecture](arch/memory_architecture.md) owns guest RAM and delegated
+capability details. The [boot sequence](arch/boot.md) owns the ordered target
+startup and terminal-shutdown flow. The [capability model](arch/capability_model.md)
+owns CSpace layout and authority delegation.
 
 ## Repository and modules
 
@@ -81,10 +83,10 @@ ninja
 `build/simulate` is the final runnable development artifact. Testing has a
 separate build mode described in [Testing Strategy](testing_strategy.md).
 
-The 2026-09-04 normal artifact built and reached READY, GUEST_LOADING, FDT
-loading, ELF loading, and guest-context preparation with 2048 MiB host RAM.
-It then timed out in the vCPU-start path without guest hello or
-`UNDERLORD_PHASE2_RESULT: PASS`.
+The normal 2048 MiB QEMU artifact boots the configured guest, captures its
+hello through the trapped UART, accepts its PSCI terminal event, and emits one
+`UNDERLORD_PHASE2_RESULT: PASS` marker. The intentional post-PASS block is
+terminated by the QEMU test harness.
 
 ## Current boundary
 

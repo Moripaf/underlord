@@ -3,13 +3,10 @@
 #include <libfdt.h>
 #include <sel4/sel4.h>
 #include <sel4vm/arch/guest_arm_context.h>
-#include <sel4vm/arch/processor.h>
 #include <sel4vm/boot.h>
 #include <sel4vm/guest_ram.h>
 #include <sel4vm/guest_vcpu_fault.h>
 #include <sel4vm/guest_vm_util.h>
-#include <sel4vm/sel4_arch/processor.h>
-#include <sel4vmmplatsupport/arch/guest_vcpu_fault.h>
 #include <sel4vmmplatsupport/arch/smc.h>
 #include <sel4vmmplatsupport/guest_vcpu_util.h>
 
@@ -26,7 +23,6 @@ struct copy_state {
 
 static vmm_vm_t *active_vm;
 static unsigned char runtime_fdt[65536];
-static unsigned int guest_vcpu_faults;
 
 #define VMM_GUEST_EL1H_MASKED_SPSR UINT64_C(0x3c5)
 
@@ -39,32 +35,6 @@ static memory_fault_result_t unexpected_mem_fault(vm_t *guest, vm_vcpu_t *vcpu,
   (void)length;
   (void)cookie;
   return FAULT_ERROR;
-}
-
-static int guest_vcpu_fault(vm_vcpu_t *vcpu, uint32_t hsr, void *cookie) {
-  seL4_UserContext context;
-  seL4_Word caller[2] = {0};
-  seL4_Word parent[2] = {0};
-  (void)cookie;
-  if (guest_vcpu_faults++ == 0 && vm_get_thread_context(vcpu, &context) == 0) {
-    underlord_vlog_info(0, "first guest vCPU exception HSR=0x%x PC=0x%lx", hsr,
-                        (unsigned long)context.pc);
-    if (active_vm != NULL &&
-        vm_ram_touch(&active_vm->vm, context.x29, sizeof(caller),
-                     vm_guest_ram_read_callback, caller) == 0)
-      underlord_vlog_info(0, "guest halt caller=0x%lx",
-                          (unsigned long)caller[1]);
-    if (active_vm != NULL && caller[0] != 0 &&
-        vm_ram_touch(&active_vm->vm, caller[0], sizeof(parent),
-                     vm_guest_ram_read_callback, parent) == 0)
-      underlord_vlog_info(0, "guest halt parent=0x%lx",
-                          (unsigned long)parent[1]);
-  }
-  if (HSR_EXCEPTION_CLASS(hsr) == HSR_WFx_EXCEPTION) {
-    advance_vcpu_fault(vcpu);
-    return 0;
-  }
-  return vmm_handle_arm_vcpu_exception(vcpu, hsr, NULL);
 }
 
 static void guest_line(const char *line, void *cookie) {
@@ -90,9 +60,6 @@ static memory_fault_result_t uart_fault(vm_t *guest, vm_vcpu_t *vcpu,
       address < (uintptr_t)0x09000000U || address >= (uintptr_t)0x09001000U)
     return FAULT_ERROR;
   offset = address - (uintptr_t)0x09000000U;
-  underlord_vlog_debug(0, "guest PL011 %s offset=0x%lx",
-                       is_vcpu_read_fault(vcpu) ? "read" : "write",
-                       (unsigned long)offset);
   if (!is_vcpu_read_fault(vcpu)) {
     if (offset == 0x00) {
       char byte = (char)(get_vcpu_fault_data(vcpu) & 0xffU);
@@ -124,11 +91,18 @@ static int guest_smc(vm_vcpu_t *vcpu, seL4_UserContext *regs) {
       uint32_t word;
       if (active_vm == NULL || !active_vm->guest_hello)
         return -1;
+      if (seL4_TCB_Suspend(vm_get_vcpu_tcb(vcpu)) != seL4_NoError)
+        return -1;
+      active_vm->guest_stopped = 1;
       if (vmm_protocol_encode(VMM_PROTOCOL_GUEST_STOPPED, &word) != 0)
         return -1;
       seL4_SetMR(0, word);
       seL4_Send(VMM_CONTROL_ENDPOINT_SLOT, seL4_MessageInfo_new(0, 0, 0, 1));
-      return seL4_TCB_Suspend(vm_get_vcpu_tcb(vcpu)) == seL4_NoError ? 0 : -1;
+      /* Do not return through libsel4vm's SMC reply path after suspending the
+       * faulting vCPU.  The local endpoint is the VMM's terminal wait point. */
+      for (;;) {
+        seL4_Wait(active_vm->host_endpoint.cptr, NULL);
+      }
     }
   }
   return vm_smc_handle_default(vcpu, regs);
@@ -260,6 +234,7 @@ int vmm_guest_boot_load(vmm_vm_t *vm, const void *image, size_t image_size,
   active_vm = vm;
   vmm_guest_console_init(&vm->guest_console);
   vm->guest_hello = 0;
+  vm->guest_stopped = 0;
   vm->vm.mem.clean_cache = 1;
   if (vm_register_unhandled_mem_fault_callback(&vm->vm, unexpected_mem_fault,
                                                vm) != 0 ||
@@ -288,7 +263,6 @@ int vmm_guest_boot_load(vmm_vm_t *vm, const void *image, size_t image_size,
         return -1;
       }
     }
-    underlord_vlog_info(0, "guest ELF segment %u loaded", (unsigned)i);
   }
   if (make_fdt(runtime_fdt, sizeof(runtime_fdt)) != 0) {
     underlord_vlog_error(0, "guest FDT construction failed");
@@ -298,7 +272,6 @@ int vmm_guest_boot_load(vmm_vm_t *vm, const void *image, size_t image_size,
     underlord_vlog_error(0, "guest FDT copy failed");
     return -1;
   }
-  underlord_vlog_info(0, "guest runtime FDT loaded");
   vm->vm.entry = plan.entry;
   *entry = plan.entry;
   return 0;
@@ -312,15 +285,11 @@ int vmm_guest_boot_start(vmm_vm_t *vm, uint64_t entry) {
   vcpu = create_vmm_plat_vcpu(&vm->vm, 0);
   if (vcpu == NULL || vm_assign_vcpu_target(vcpu, 0) != 0)
     return -1;
-  if (vm_register_unhandled_vcpu_fault_callback(vcpu, guest_vcpu_fault, NULL) !=
-      0)
-    return -1;
   context.pc = entry;
   context.spsr = VMM_GUEST_EL1H_MASKED_SPSR;
   if (vm_set_thread_context(vcpu, context) != 0 ||
       vm_set_arm_vcpu_reg(vcpu, seL4_VCPUReg_SCTLR, 0) != 0 ||
       vcpu_start(vcpu) != 0)
     return -1;
-  underlord_vlog_info(0, "guest vCPU started at 0x%lx", (unsigned long)entry);
   return 0;
 }

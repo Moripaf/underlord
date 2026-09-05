@@ -20,6 +20,8 @@
  * @param guest_ram Dedicated stage-2 RAM arena retained for VM lifetime.
  * @param guest_console Bounded guest UART capture state.
  * @param guest_hello True after the exact hello token was captured.
+ * @param guest_stopped True after the post-hello PSCI SYSTEM_OFF vCPU
+ *        suspension succeeded.
  */
 typedef struct vmm_vm {
     vm_t vm;
@@ -27,6 +29,7 @@ typedef struct vmm_vm {
     vmm_guest_ram_t guest_ram;
     vmm_guest_console_t guest_console;
     int guest_hello;
+    int guest_stopped;
 } vmm_vm_t;
 
 /***

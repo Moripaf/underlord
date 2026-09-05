@@ -30,13 +30,14 @@ The lifecycle transitions are implemented as pure logic in
 3. `sel4utils` constructs the child process from the embedded ELF.
 4. The manager allocates and copies the protocol control endpoint into the
    child, starts it, and waits for the [VMM READY contract](vmm.md#control-contract).
-5. After READY, the instance becomes `running`; it accepts the first
-   `GUEST_LOADING` event only after the VMM has validated that shared mapping,
-   then continues to supervise protocol events and faults on the same endpoint.
+5. After READY, the instance becomes `running`; it accepts `GUEST_LOADING`,
+   `GUEST_BOOTING`, and `GUEST_STARTED` in order.  It emits exactly one
+   `UNDERLORD_PHASE2_RESULT: PASS` only after the VMM reports its post-hello
+   PSCI `SYSTEM_OFF` as `GUEST_STOPPED`, then remains blocked on its endpoint.
 
 A startup error moves a starting instance to `faulted`. A runtime fault is
-terminal: it is logged and the root task remains blocked. Resources are not
-currently reclaimed.
+terminal: it is logged and the root task remains blocked.  Neither terminal
+path returns from the root task. Resources are not currently reclaimed.
 
 ## Authority and capability contract
 

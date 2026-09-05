@@ -42,9 +42,9 @@ RAM.  Guest RAM is never a host-physical one-to-one mapping.
 | Supervisor endpoint | Child CSpace slot 8 | Root-created, badged endpoint for lifecycle events only. |
 | Delegated normal-RAM untyped | Child CSpace slot 9 | One non-device untyped with manifest size bits and physical base. |
 | GICv2 virtual-CPU interface | Child CSpace slot 10 | Root-created frame capability used only by the virtual GIC. |
-| PL011 UART frame | Child CSpace slot 11, GPA `0x09000000` | Root-created read-only device-frame cap, mapped only into stage 2. |
+| PL011 UART frame | Root CSpace only | Root retains the physical device frame; guest GPA `0x09000000..0x09000fff` is reserved for a trapped virtual UART. |
 
-Slots 1--7 remain sel4utils process resources; slot 12 is the first VMM-local
+Slots 1--7 remain sel4utils process resources; slot 11 is the first VMM-local
 allocation slot.  The child CSpace remains 16-bit.  No other root, IRQ,
 device, or I/O authority is delegated.
 
@@ -61,17 +61,20 @@ guest.
 Boot order is deliberately fixed:
 
 1. Root selects the untyped, records the child stack-and-guard range in
-   manifest version 2, and installs slots 8--11 before the child starts.
+   manifest version 2, and installs slots 8--10 before the child starts.
 2. VMM validates the manifest and reserves inherited IPC, stack, and shared
    image mappings before reserving its virtual allocator pool.
 3. VMM initializes the truthful one-untyped `simple_t`, allocman, and VKA,
    then immediately reserves one 27-bit guest arena before ordinary VM objects.
 4. VMM creates libsel4vm and its virtual GIC, maps the arena-backed RAM bank,
-   and maps the single PL011 device.
+   and reserves the single trapped PL011 GPA page without mapping a device.
 5. VMM validates and loads the ELF, zeroes BSS tails, writes the runtime FDT,
    and creates one EL1h vCPU on CPU 0.
 6. VMM reports lifecycle progress and starts the vCPU.  PSCI `SYSTEM_OFF`
    stops it and sends the terminal stop event.
+
+The complete ordered startup and terminal-shutdown behavior is in the
+[boot sequence](boot.md).
 
 ## Failure and reporting rules
 
@@ -93,8 +96,9 @@ On 2026-09-04, `CCACHE_DISABLE=1 ninja -C build` followed by
 `cd build && timeout 60s ./simulate` with `QEMU_MEMORY=2048` logged
 `registering arena-backed guest RAM`, `VMM instance 0 started`, and
 `VMM instance 0 accepted guest image`. Those latter two lines are the existing
-`READY` and `GUEST_LOADING` acceptance path. This normal image intentionally
-does not claim guest execution or `UNDERLORD_PHASE2_RESULT: PASS`.
+`READY` and `GUEST_LOADING` acceptance path. The normal image now proceeds
+through the trapped UART and PSCI terminal path; its exact run evidence belongs
+to the testing strategy.
 
 The pure host test exercises all 32,768 sequential admissions and rejects
 misaligned, repeated, out-of-order, and exhausted requests. Separate AArch64
@@ -108,11 +112,10 @@ only `READY -> LOADING -> BOOTING -> STARTED -> STOPPED`; it emits exactly one
 `UNDERLORD_PHASE2_RESULT: PASS` only after the clean terminal stop.  A fault,
 invalid event, or `GUEST_FAILED` produces no PASS result.
 
-On 2026-09-04, target execution confirmed arena registration, FDT/ELF memory
-touches, and guest-context preparation only. The checked-in ARM libsel4vm
-`vcpu_start()` call did not return control to the VMM child before the bounded
-`build/simulate` run expired, so vCPU, hello, PSCI, and PASS guarantees remain
-unverified requirements.
+On 2026-09-05, the configured target completed the real lifecycle: it loaded
+the ELF/FDT into the arena-backed RAM, printed the captured hello through the
+virtual UART, and invoked the accepted PSCI terminal path. The VMM and root
+then remain intentionally blocked after the single PASS marker.
 
 ## Explicit exclusions
 

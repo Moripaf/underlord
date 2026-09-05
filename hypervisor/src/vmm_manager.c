@@ -225,9 +225,14 @@ void vmm_instance_supervise(vmm_instance_t *instance) {
           vmm_guest_transition(&instance->guest_state, VMM_GUEST_EVENT_START) == 0) continue;
       if (message == VMM_PROTOCOL_GUEST_STOPPED &&
           vmm_guest_transition(&instance->guest_state, VMM_GUEST_EVENT_STOP) == 0 &&
-          vmm_lifecycle_transition(&instance->state, VMM_EVENT_STOP) == 0) {
+        vmm_lifecycle_transition(&instance->state, VMM_EVENT_STOP) == 0) {
         printf("UNDERLORD_PHASE2_RESULT: PASS\n");
-        return;
+        /* The root task has no caller to return to.  The suspended guest has
+         * already completed its sole lifecycle, so wait indefinitely in the
+         * intentional terminal-success state. */
+        for (;;) {
+          seL4_Wait(instance->fault_endpoint.cptr, NULL);
+        }
       }
 invalid_event:
       (void)vmm_lifecycle_transition(&instance->state, VMM_EVENT_FAILURE);

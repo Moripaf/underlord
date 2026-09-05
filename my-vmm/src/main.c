@@ -64,5 +64,15 @@ int main(void)
 #endif
 
     /* vm_run owns the VMM-local endpoint and handles every guest exit. */
-    return vm_run(&vm.vm);
+    if (vm_run(&vm.vm) != 0 || !vm.guest_stopped) {
+        underlord_vlog_error(0, "guest runtime ended unexpectedly");
+        return -1;
+    }
+
+    /* The guest vCPU is suspended after its accepted PSCI SYSTEM_OFF.  Keep
+     * the VMM alive in its terminal state instead of returning to the C
+     * runtime, which has no valid continuation for this child task. */
+    for (;;) {
+        seL4_Wait(vm.host_endpoint.cptr, NULL);
+    }
 }

@@ -24,14 +24,15 @@ descriptor and `c-hello` bytes are mapped read-only by the root task; their
 frame capabilities are retained in root CSpace. After READY, VMM emits
 `GUEST_LOADING` only after admitting this immutable input.
 
-## Verified implementation boundary (2026-09-04)
+## Verified implementation boundary (2026-09-05)
 
 Pure admission now handles `SHT_NOBITS`, rejects overflow-safe invalid ranges,
 and validates Unikraft `.uk_bootinfo` magic, version, and nonzero region count.
-The configured guest passes the focused host regressions. The target probe
-loaded the FDT and ELF and prepared guest context, but `vcpu_start()` did not
-return during bounded QEMU execution. No guest hello, PSCI shutdown, or PASS
-result was observed; Phase 2 remains incomplete.
+The normal AArch64 QEMU run boots the configured guest, captures
+`Hello from Unikraft!`, accepts its PSCI `SYSTEM_OFF`, and produces the
+protocol-derived PASS marker.  On that accepted terminal SMC, the VMM first
+suspends the vCPU, sends `GUEST_STOPPED`, and blocks on its local VM endpoint;
+it does not return through libsel4vm's fault-reply path or from `main`.
 
 ## Control contract
 
