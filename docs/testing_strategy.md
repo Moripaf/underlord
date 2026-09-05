@@ -25,6 +25,11 @@ The 2026-09-04 run is incomplete acceptance evidence: host ELF regressions and
 the cross-build passed, but QEMU timed out after guest-context preparation in
 `vcpu_start()`. A timeout or missing hello/PASS marker is a failure.
 
+The 9p acceptance entry point is `tests/run-9p-simulate.sh`; it supplies the
+catalog `virtio-9p-device` backend arguments to `build/simulate` and requires a
+pre-existing export directory. It is not a passing integration test until the
+bridge process and VMM transport are connected.
+
 ## Test layout
 
 ```

@@ -16,6 +16,10 @@
 #include <vmm_guest_contract.h>
 #include <vmm_protocol.h>
 
+#ifndef UNDERLORD_C_FS_9P_MODE
+#define UNDERLORD_C_FS_9P_MODE "exercise"
+#endif
+
 struct copy_state {
   const unsigned char *src;
   int zero;
@@ -137,7 +141,7 @@ static int put_gic_reg(void *fdt, int node) {
 }
 
 static int make_fdt(void *fdt, size_t capacity) {
-  int root, cpus, cpu, intc, psci, uart, timer, chosen, aliases;
+  int root, cpus, cpu, intc, psci, uart, virtio9p, timer, chosen, aliases;
   fdt32_t one = cpu_to_fdt32(1), zero = cpu_to_fdt32(0);
   if (fdt_create_empty_tree(fdt, capacity) < 0)
     return -1;
@@ -205,13 +209,25 @@ static int make_fdt(void *fdt, size_t capacity) {
           (fdt32_t[]){cpu_to_fdt32(0), cpu_to_fdt32(1), cpu_to_fdt32(4)},
           12) < 0)
     return -1;
+  virtio9p = fdt_add_subnode(fdt, root, "virtio_mmio@a000000");
+  if (virtio9p < 0 ||
+      fdt_setprop_string(fdt, virtio9p, "compatible", "virtio,mmio") < 0 ||
+      put_reg64(fdt, virtio9p, "reg", UINT64_C(0x0a000000), UINT64_C(0x200)) < 0 ||
+      fdt_setprop(fdt, virtio9p, "interrupt-parent",
+                  &(fdt32_t){cpu_to_fdt32(1)}, sizeof(fdt32_t)) < 0 ||
+      fdt_setprop(fdt, virtio9p, "interrupts",
+                  (fdt32_t[]){cpu_to_fdt32(0), cpu_to_fdt32(16), cpu_to_fdt32(1)},
+                  12) < 0 ||
+      fdt_setprop( fdt, virtio9p, "dma-coherent", NULL, 0) < 0)
+    return -1;
   aliases = fdt_add_subnode(fdt, root, "aliases");
   if (aliases < 0 ||
       fdt_setprop_string(fdt, aliases, "serial0", "/pl011@9000000") < 0)
     return -1;
   chosen = fdt_add_subnode(fdt, root, "chosen");
   if (chosen < 0 ||
-      fdt_setprop_string(fdt, chosen, "stdout-path", "serial0:115200n8") < 0)
+      fdt_setprop_string(fdt, chosen, "stdout-path", "serial0:115200n8") < 0 ||
+      fdt_setprop_string(fdt, chosen, "bootargs", UNDERLORD_C_FS_9P_MODE) < 0)
     return -1;
   if (fdt_pack(fdt) < 0)
     return -1;

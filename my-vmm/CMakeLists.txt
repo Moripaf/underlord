@@ -29,6 +29,7 @@ if(VMM_FAULT_TEST)
 else()
     target_compile_definitions(${PROJECT_NAME} PRIVATE VMM_FAULT_TEST=0)
 endif()
+target_compile_definitions(${PROJECT_NAME} PRIVATE UNDERLORD_C_FS_9P_MODE="${UNDERLORD_C_FS_9P_MODE}")
 
 # Keep this list intentional for what your app actually uses.
 target_link_libraries(

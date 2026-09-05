@@ -79,3 +79,7 @@ The direct-QEMU persistent-storage test guest is specified separately in
 [the storage test contract](../storage-test-contract.md). Its results are not
 evidence for Underlord until the same contract is implemented and validated by
 `build/simulate`.
+
+The `virtio-bridge/` sibling currently contains only the bounded protocol
+library. It owns no device, IRQ, host directory, or guest capability until the
+VMM and hypervisor transport implementation lands as one change.

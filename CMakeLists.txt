@@ -8,11 +8,16 @@ endif()
 
 project(Underlord)
 
-if(NOT UNDERLORD_GUEST STREQUAL "c-hello" AND NOT UNDERLORD_GUEST STREQUAL "cpp-hello" AND NOT UNDERLORD_GUEST STREQUAL "c-fs")
-    message(FATAL_ERROR "UNDERLORD_GUEST must be c-hello, cpp-hello, or c-fs")
+if(NOT UNDERLORD_GUEST STREQUAL "c-hello" AND NOT UNDERLORD_GUEST STREQUAL "cpp-hello" AND NOT UNDERLORD_GUEST STREQUAL "c-fs" AND NOT UNDERLORD_GUEST STREQUAL "c-fs-9p")
+    message(FATAL_ERROR "UNDERLORD_GUEST must be c-hello, cpp-hello, c-fs, or c-fs-9p")
 endif()
 if(NOT UNDERLORD_LOG_LEVEL IN_LIST _underlord_log_levels)
     message(FATAL_ERROR "UNDERLORD_LOG_LEVEL must be one of: TRACE, DEBUG, INFO, WARN, ERROR")
+endif()
+if(NOT UNDERLORD_C_FS_9P_MODE STREQUAL "exercise" AND
+   NOT UNDERLORD_C_FS_9P_MODE STREQUAL "verify" AND
+   NOT UNDERLORD_C_FS_9P_MODE STREQUAL "verify-host")
+    message(FATAL_ERROR "UNDERLORD_C_FS_9P_MODE must be exercise, verify, or verify-host")
 endif()
 
 if(NOT UNDERLORD_BUILD_TESTS)
@@ -26,6 +31,12 @@ if(NOT UNDERLORD_BUILD_TESTS)
     underlord_validate_unikraft_config("${UNDERLORD_C_GUEST_CONFIG}")
     underlord_validate_unikraft_cpp_config("${UNDERLORD_CPP_GUEST_CONFIG}")
     underlord_validate_unikraft_c_fs_config("${UNDERLORD_C_FS_GUEST_CONFIG}")
+    if(UNDERLORD_GUEST STREQUAL "c-fs-9p")
+        if(NOT EXISTS "${UNDERLORD_C_FS_9P_GUEST_ELF}" OR NOT EXISTS "${UNDERLORD_C_FS_9P_GUEST_CONFIG}")
+            message(FATAL_ERROR "c-fs-9p requires both guest ELF and .config files")
+        endif()
+        underlord_validate_unikraft_c_fs_9p_config("${UNDERLORD_C_FS_9P_GUEST_CONFIG}")
+    endif()
 endif()
 
 # elfloader strips AArch64 kernel and root-task ELF files; use the matching
@@ -84,6 +95,7 @@ endif()
 
 # Shared utilities are linked by both independently running components.
 add_subdirectory(underlord-utils)
+add_subdirectory(virtio-bridge)
 
 # Build the child ELF before the rootserver packages it into its CPIO archive.
 add_subdirectory(my-vmm)

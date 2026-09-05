@@ -26,7 +26,7 @@ option(VMM_FAULT_TEST "Make the Phase 1 VMM deliberately fault after startup" OF
 option(UNDERLORD_BUILD_TESTS "Build Underlord host and seL4 test targets" OFF)
 # Select which bundled Unikraft hello guest the normal hypervisor startup launches.
 set(UNDERLORD_GUEST "c-fs" CACHE STRING "Bundled guest selected for the normal hypervisor startup")
-set_property(CACHE UNDERLORD_GUEST PROPERTY STRINGS c-hello cpp-hello c-fs)
+set_property(CACHE UNDERLORD_GUEST PROPERTY STRINGS c-hello cpp-hello c-fs c-fs-9p)
 # Keep the accepted log severities available to configure-time validation.
 set(_underlord_log_levels TRACE DEBUG INFO WARN ERROR CACHE INTERNAL "Underlord log levels")
 # Select the minimum severity emitted by Underlord's structured logging macros.
@@ -44,6 +44,10 @@ set(UNDERLORD_CPP_GUEST_CONFIG "/var/Code/final-proj/catalog-arm/cpp-hello/.conf
 set(UNDERLORD_C_FS_GUEST_ELF "/var/Code/final-proj/catalog-arm/c-fs/workdir/build/c-fs_qemu-arm64" CACHE FILEPATH "AArch64 QEMU-virt Unikraft c-fs ELF")
 # Use the final Unikraft configuration that embeds the c-fs CPIO root filesystem.
 set(UNDERLORD_C_FS_GUEST_CONFIG "/var/Code/final-proj/catalog-arm/c-fs/.config" CACHE FILEPATH "Final .config used for c-fs ELF")
+set(UNDERLORD_C_FS_9P_GUEST_ELF "/var/Code/final-proj/catalog-arm/c-fs-9p/workdir/build/c-fs-9p_qemu-arm64" CACHE FILEPATH "AArch64 QEMU-virt Unikraft c-fs-9p ELF")
+set(UNDERLORD_C_FS_9P_GUEST_CONFIG "/var/Code/final-proj/catalog-arm/c-fs-9p/.config" CACHE FILEPATH "Final .config used for c-fs-9p ELF")
+set(UNDERLORD_C_FS_9P_MODE "exercise" CACHE STRING "c-fs-9p boot mode (exercise, verify, or verify-host)")
+set_property(CACHE UNDERLORD_C_FS_9P_MODE PROPERTY STRINGS exercise verify verify-host)
 
 set(SIMULATION OFF CACHE BOOL "Include only simulation compatible tests")
 set(RELEASE OFF CACHE BOOL "Performance optimized build")

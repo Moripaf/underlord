@@ -60,6 +60,14 @@ vmm)
     "$work_dir/console"
     exit 0
     ;;
+bridge)
+    "$host_cc" -std=c11 -Wall -Wextra -Werror \
+        -I"$source_root/virtio-bridge/include" \
+        "$source_root/virtio-bridge/tests/virtio_bridge_protocol_test.c" \
+        "$source_root/virtio-bridge/src/virtio_bridge_protocol.c" \
+        "$source_root/virtio-bridge/src/virtio_mmio_model.c" \
+        "$source_root/virtio-bridge/src/virtio_queue_validate.c" -o "$work_dir/test"
+    ;;
 *)
     exit 2
     ;;

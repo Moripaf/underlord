@@ -43,6 +43,10 @@ The source tree and documentation live in one project repository.
 |---|---|
 | `hypervisor/` | seL4 rootserver and VMM supervisor |
 | `my-vmm/` | Restricted child process that will host VM logic |
+| `virtio-bridge/` | Bounded protocol library for the future QEMU virtio-9p child |
+
+The bridge contract and its pending capability boundary are described in
+[Virtio bridge](virtio_bridge.md).
 | `underlord-utils/` | Shared bounded logging and component-specific log APIs |
 | `tests/` and module-local `tests/` | Host and seL4/QEMU tests |
 

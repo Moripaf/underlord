@@ -52,3 +52,17 @@ function(underlord_validate_unikraft_c_fs_config config)
         endif()
     endforeach()
 endfunction()
+
+function(underlord_validate_unikraft_c_fs_9p_config config)
+    file(READ "${config}" contents)
+    foreach(required "CONFIG_ARCH_ARM_64=y" "CONFIG_PLAT_KVM=y"
+                    "CONFIG_KVM_VMM_QEMU=y" "CONFIG_KVM_BOOT_PROTO_QEMU_VIRT=y"
+                    "CONFIG_LIBVFSCORE=y" "CONFIG_LIBUK9P=y" "CONFIG_LIB9PFS=y"
+                    "CONFIG_LIBVIRTIO_9P=y" "CONFIG_LIBVIRTIO_MMIO=y"
+                    "CONFIG_LIBVIRTIO_MMIO_FDT=y")
+        string(FIND "${contents}" "${required}" found)
+        if(found EQUAL -1)
+            message(FATAL_ERROR "Unikraft c-fs-9p config ${config} must contain ${required}")
+        endif()
+    endforeach()
+endfunction()
